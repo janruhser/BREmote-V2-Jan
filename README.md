@@ -103,6 +103,10 @@ Rx:
 </details>
 
 # Changelog:
+
+### 2025-07-08:
+Update Tx: Add a case where 0 set as tog_block_time disables gearshifiting after initial throttle input
+Fix Rx: Change PWM Pin from open-drain to push-pull 
 ### 2025-06-05:
 Updated Readme (Add YT link and conn examples)
 ### 2025-05-26:
