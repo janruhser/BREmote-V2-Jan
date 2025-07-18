@@ -49,15 +49,16 @@ void setup()
     }
     system_locked = 0;
   }
+
   if(usrConf.no_gear)
   {
-    gear = usrConf.max_gears;
+    gear = usrConf.max_gears-1;
   }
   else
   {
-    if(usrConf.startgear > usrConf.max_gears) usrConf.startgear = usrConf.max_gears;
-    gear = usrConf.startgear+1;
-  }  
+    if(usrConf.startgear >= usrConf.max_gears) usrConf.startgear = usrConf.max_gears-1;
+    gear = usrConf.startgear;
+  }
 
   exitSetup();
 }

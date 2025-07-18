@@ -104,6 +104,8 @@ Rx:
 
 # Changelog:
 
+###2025-07-18:
+* Fix Tx: Incorrect gear/throttle calculation
 ###2025-07-10:
 * Update Rx: Add ?printBat
 ### 2025-07-08:

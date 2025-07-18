@@ -172,7 +172,7 @@ void displayHorzBargraph(int location, int length)
 
 void showNewGear()
 {
-  displayDigits(LET_L, gear-1);
+  displayDigits(LET_L, gear);
   updateDisplay();
 }
 

@@ -241,7 +241,7 @@ void sendData(void *parameter)
       }
       else
       {
-        float thr_mult = (float)expoThrCurve(thr_scaled) * (float)gear / (float)usrConf.max_gears;
+        float thr_mult = (float)expoThrCurve(thr_scaled) * (float)(gear+1) / (float)usrConf.max_gears;
         sendArray[3] = (uint8_t)thr_mult;
         //float steer_mult = ((127.0-(float)steer_scaled) * (float)gear / (float)usrConf.max_gears)+127.0;
         sendArray[4] = steer_scaled;//(uint8_t)steer_mult;

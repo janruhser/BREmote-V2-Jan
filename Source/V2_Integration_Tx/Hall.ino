@@ -190,8 +190,8 @@ void runMenu()
             }
             delay(1000);
             system_locked = 0;
-            if(usrConf.startgear > usrConf.max_gears) usrConf.startgear = usrConf.max_gears;
-            gear = usrConf.startgear+1;
+            if(usrConf.startgear >= usrConf.max_gears) usrConf.startgear = usrConf.max_gears-1;
+            gear = usrConf.startgear;
             in_menu = usrConf.menu_timeout;
           }
         }
@@ -233,7 +233,7 @@ void runMenu()
             {
               if(!usrConf.no_gear)
               {
-                if(gear > 1) gear --;
+                if(gear > 0) gear --;
                 showNewGear();
                 decrease_once = 0;
               }
@@ -272,7 +272,7 @@ void runMenu()
             {
               if(!usrConf.no_gear)
               {
-                if(gear < usrConf.max_gears) gear ++;
+                if(gear < usrConf.max_gears-1) gear ++;
                 showNewGear();
                 increase_once = 0;
               }
