@@ -175,7 +175,7 @@ void runMenu()
           //To unlock, promt user to touch throttle once
           advanceArrow();
           unsigned long timeout = millis();
-          while(thr_scaled < 20 && (millis()-timeout < usrConf.trig_unlock_timeout ))
+          while(thr_scaled < 200 && (millis()-timeout < usrConf.trig_unlock_timeout ))
           {
             advanceArrow();
             delay(100);
@@ -266,6 +266,31 @@ void runMenu()
         while(ctplus())
         {
           delay(10);
+          if(millis() - pushtime > usrConf.lock_waittime)
+          {
+            if(thr_scaled < 10)
+            {
+              if(0) //TODO: Add the enabler from usrConf later
+              {
+                if(followme_enabled)
+                {
+                  followme_enabled = 0;
+                  scroll4Digits(5,LET_T,LET_E,LET_E,150);
+                }
+                else
+                {
+                  followme_enabled = 1;
+                  scroll4Digits(LET_F,0,LET_L,LET_L,150);
+                }
+              }
+              in_menu = usrConf.menu_timeout;
+            }
+            while(ctminus())
+            {
+              delay(100);
+            }
+            break;
+          }
           if(millis() - pushtime > usrConf.gear_change_waittime)
           {
             if(increase_once)

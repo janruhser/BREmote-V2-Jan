@@ -104,9 +104,11 @@ Rx:
 
 # Changelog:
 
-###2025-07-18:
+### 2025-08-16:
+* Fix Tx: Add timeout to "ECH" message
+### 2025-07-18:
 * Fix Tx: Incorrect gear/throttle calculation
-###2025-07-10:
+### 2025-07-10:
 * Update Rx: Add ?printBat
 ### 2025-07-08:
 * Update Tx: Add a case where 0 set as tog_block_time disables gearshifiting after initial throttle input

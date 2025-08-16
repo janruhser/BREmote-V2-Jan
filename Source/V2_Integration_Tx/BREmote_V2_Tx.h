@@ -168,6 +168,9 @@ volatile uint8_t last_known_bat_graph = 0;
 volatile bool blink_bargraphs = 0;
 
 volatile bool exitChargeScreen = 0;
+
+volatile bool followme_enabled = false;
+
 /* 
 ** Defines
 */

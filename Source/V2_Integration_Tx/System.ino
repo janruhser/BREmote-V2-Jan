@@ -511,7 +511,13 @@ void checkCharger()
         Serial.println("CHG ERR!");
         Serial.print("Stat: ");
         Serial.println(chgstat);
-        while(1) scroll3Digits(LET_E, LET_C, LET_H, 200);
+        int timeout = 0;
+        while(timeout < 4)
+        {
+          timeout++;
+          scroll3Digits(LET_E, LET_C, LET_H, 200);
+        }
+        exitChargeScreen = 1;
       }
     }
   }

@@ -15,6 +15,8 @@ void setup()
   initSPIFFS();
   getConfFromSPIFFS();
 
+  if(usrConf.max_gears <= 0) usrConf.max_gears = 1;
+
   startupADS();
 
   checkCharger();
