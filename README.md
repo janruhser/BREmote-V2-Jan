@@ -104,6 +104,9 @@ Rx:
 
 # Changelog:
 
+### 2025-09-02:
+* Move vias next to connector on Bot_Shield
+* Add 3D files for Tx-GPS integration
 ### 2025-08-16:
 * Fix Tx: Add timeout to "ECH" message
 ### 2025-07-18:
