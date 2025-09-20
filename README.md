@@ -104,6 +104,13 @@ Rx:
 
 # Changelog:
 
+## V1.2
+### 2025-09-20:
+* Release V1.2.: Change SW version and config version (preparation for follow me)
+* Add improved battery measurement
+* Change display layout (swap battery and signal graph)
+
+## V1.1:
 ### 2025-09-02:
 * Move vias next to connector on Bot_Shield
 * Add 3D files for Tx-GPS integration

@@ -23,8 +23,9 @@
 
 #include <TinyGPS++.h> //TinyGPSPlus 1.0.3 Mikal Hart
 
-#define SW_VERSION 1
+#define SW_VERSION 2
 const char* CONF_FILE_PATH = "/data.txt";
+const char* BC_FILE_PATH = "/batconf.txt";
 
 /*
 ** Structs
@@ -33,13 +34,13 @@ struct confStruct {
     //Version
     uint16_t version;
     
-    uint16_t radio_preset;
-    int16_t rf_power;
+    uint16_t radio_preset; //1: 868MHz (EU), 2: 915MHz (US/AU)
+    int16_t rf_power; //Tx power from -9 to 22
 
     uint16_t steering_type; //0: single motor, 1: diff motor, 2: servo
     uint16_t steering_influence; //How much (percentually) the steering influences the motor speeds
-    uint16_t steering_inverted; 
-    int16_t trim;
+    uint16_t steering_inverted; //If steering is inverted or not
+    int16_t trim; //Trim the steering
 
     //PWM min and max
     uint16_t PWM0_min;
@@ -50,28 +51,49 @@ struct confStruct {
     uint16_t failsafe_time; //Time after last packet until failsafe
 
     //Foil battery voltage settings
-    float foil_bat_low;
-    float foil_bat_high;
+    uint16_t foil_num_cells; //Amount of cells in series e.g. 14 for a "14SxP" pack
 
     //Sensors
     uint16_t bms_det_active;
     uint16_t wet_det_active;
 
+    uint16_t dummy_delete_me;
+
     //UART config
     uint16_t data_src; //0: off, 1:analog, 2: VESC UART
-    uint16_t gps_en;
 
+    // GPS features related flags
+    uint16_t gps_en;         // GPS runtime enable flag (0=disabled, 1=enabled)
+    uint16_t followme_mode;  // Follow-me runtime mode flag (0=disabled, 1=behind, 2=near_right, 3=near_left)
+    uint16_t kalman_en;      // Kalman filter runtime enable flag (0=disabled, 1=enabled)
+
+    //Follow-me
+    float boogie_vmax_in_followme_kmh; // Maximum boogie speed in follow-me mode (km/h)
+    float min_dist_m; // minimum allowed distance to the foiler
+    float followme_smoothing_band_m; // smoothing band above min distance
+    float foiler_low_speed_kmh; // low-speed threshold for safety stop (hysteresis)
+    float zone_angle_enter_deg; // Half-angle for zone entry (deg)
+    float zone_angle_exit_deg;  // Half-angle for zone exit (deg)
+    float near_diag_offset_deg; // Offset from behind for NEAR modes (deg)
+    
     //System parameters
     float ubat_cal; //ADC to volt cal for bat meas
+    float ubat_offset; //Offset to add to analog/vesc measurement
+
+    uint16_t tx_gps_stale_timeout_ms; // TX GPS data stale timeout (ms)
+
+    //Logger
+    uint16_t logger_en; // BREmote Logger runtime enable flag (0=disabled, 1=enabled)
 
     //Comms
     uint16_t paired;
     uint8_t own_address[3];
     uint8_t dest_address[3];
+
 };
 
 confStruct usrConf;
-confStruct defaultConf = {SW_VERSION, 1, -9, 0, 50, 0, 0, 1500, 2000, 1500, 2000, 1000, 10.0, 60.0, 0, 1, 0, 0, 0.0095554, 0,{0, 0, 0}, {0, 0, 0}};
+confStruct defaultConf = {SW_VERSION, 1, 0, 0, 50, 0, 0, 1500, 2000, 1500, 2000, 1000, 10, 0, 1, 0, 0, 0, 0, 0, 25.0f, 10.0f, 10.0f, 5.0f, 35.0f, 45.0f, 45.0f, 0.0095554f, 0.0, 1000, 1, 0,{0, 0, 0}, {0, 0, 0}};
 
 //Telemetry to send, MUST BE 8-bit!!
 struct __attribute__((packed)) TelemetryPacket {
@@ -137,6 +159,13 @@ volatile unsigned long get_vesc_timer = 0;
 volatile unsigned long last_uart_packet = 0;
 
 volatile uint8_t bind_pin_state = 0;
+
+float fbatVolt = 0.0;
+uint8_t noload_offset = 0;
+uint8_t bc_arr[101];
+uint8_t percent_last_val = 0xFF;
+uint8_t percent_last_thr = 1;
+unsigned long percent_last_thr_change = 0;
 
 //#define VESC_MORE_VALUES
 #ifdef VESC_MORE_VALUES

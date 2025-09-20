@@ -138,33 +138,33 @@ void clearDisplay()
   Wire.endTransmission();  
 }
 
-void displayVertBargraph(uint8_t location, uint8_t length)
+void displayVertBargraph(uint8_t location, uint8_t length, uint8_t offset)
 {
   if(location > 9) location = 9;
-  if(length > 7) length = 7;
+  if(length > 7-offset) length = 7-offset;
   
   int i = 0;
 
   for(; i < length; i++)
   {
-    displayBuffer[7-i] |= 0x01<<location; 
+    displayBuffer[7-offset-i] |= 0x01<<location; 
   }
-  for(; i < 7; i++)
+  for(; i < 7-offset; i++)
   {
-    displayBuffer[7-i] &= ~(0x01<<location); 
+    displayBuffer[7-offset-i] &= ~(0x01<<location); 
   }
 }
 
 void displayHorzBargraph(int location, int length)
 {
   if(location > 7) location = 7;
-  if(length > 7) length = 7;
+  if(length > 10) length = 10;
       
   for(int i = 0; i < length; i++)
   {
     displayBuffer[location] |= 0x01<<i;
   }
-  for(int i = length; i < 7; i++)
+  for(int i = length; i < 10; i++)
   {
     displayBuffer[location] &= ~(0x01<<i);
   }
@@ -432,38 +432,40 @@ void updateBargraphs(void *parameter)
         blink_bargraphs ^= 1;
         if(telemetry.foil_temp != 0xFF)
         {
-          last_known_temp_graph = map( telemetry.foil_temp, 0, 80, 0, 7);
-          displayVertBargraph(8,last_known_temp_graph);
+          last_known_temp_graph = map( constrain(telemetry.foil_temp,20,81), 20, 70, 1, 5);
+          displayVertBargraph(8,last_known_temp_graph,2);
         }
         else
         {
           if(blink_bargraphs)
           {
-            displayVertBargraph(8,last_known_temp_graph);
+            displayVertBargraph(8,last_known_temp_graph,2);
           }
           else
           {
-            displayVertBargraph(8,0);
+            displayVertBargraph(8,0,2);
           }
         }
 
-        if(telemetry.foil_bat != 0xFF)
+        if(telemetry.foil_bat != 0xFF && telemetry.foil_bat > 5)
         {
-          last_known_bat_graph = map( telemetry.foil_bat, 0, 100, 0, 7);
-          displayVertBargraph(9,last_known_bat_graph);
+          last_known_bat_graph = map( constrain(telemetry.foil_bat,5,100), 5, 95, 1, 10);
+          displayHorzBargraph(7,last_known_bat_graph);
         }
         else
         {
+          if(telemetry.foil_bat <= 5) last_known_bat_graph = 1;
           if(blink_bargraphs)
           {
-            displayVertBargraph(9,last_known_bat_graph);
+            displayHorzBargraph(7,last_known_bat_graph);
           }
           else
           {
-            displayVertBargraph(9,0);
+            displayHorzBargraph(7,0);
           }
         }
-        sq_graph = map( telemetry.link_quality + local_link_quality, 0, 20, 0, 7);
+
+        sq_graph = map( telemetry.link_quality + local_link_quality, 0, 20, 0, 5);
       }
     }
     else
@@ -477,7 +479,7 @@ void updateBargraphs(void *parameter)
         sq_graph = 1;
       }
     }
-    displayHorzBargraph(7, sq_graph);
+    displayVertBargraph(9, sq_graph, 2);
     updateDisplay();
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }

@@ -15,6 +15,7 @@ void setup()
 
   initSPIFFS();
   getConfFromSPIFFS();
+  getBCFromSPIFFS();
 
   startupRadio();
   radio.setPacketReceivedAction(packetReceived);

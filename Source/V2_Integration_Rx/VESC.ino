@@ -70,8 +70,8 @@ bool getValuesSelective(Stream* interface)
     #endif
     batVolt = buffer_get_int16(message, &cnt);
     
-    float fbatVolt = (float)batVolt / 10.0;
-    telemetry.foil_bat = constrain(map(fbatVolt,usrConf.foil_bat_low,usrConf.foil_bat_high,0,100),0,100);
+    fbatVolt = (float)batVolt / 10.0;
+    telemetry.foil_bat = getUbatPercent(fbatVolt);
     telemetry.foil_temp = (uint8_t)(fetTemp / 10);
 
     //String sprt = "Fet Temp: " + String(fetTemp) + "°C, Mot. Curr.: " + String(motCur) + "A, Inp. Curr: " + String(batCur) + "A, Duty:: " + String(duty) + "%, Volt: " + String(batVolt) + "V";

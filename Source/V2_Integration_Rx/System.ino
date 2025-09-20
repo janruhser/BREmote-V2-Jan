@@ -123,8 +123,64 @@ void getUbatLoop()
 
   float vActual = (float)raw*usrConf.ubat_cal;
 
-  telemetry.foil_speed = (uint8_t)(vActual);
-  telemetry.foil_bat = constrain(map(vActual,usrConf.foil_bat_low,usrConf.foil_bat_high,0,100),0,100);
+  telemetry.foil_bat = getUbatPercent(vActual);
+}
+
+uint8_t getUbatPercent(float pack_voltage)
+{
+  if(millis() - percent_last_thr_change > 5000)
+  {
+    uint8_t thr_state = (thr_received < 10);
+
+    if( thr_state != percent_last_thr)
+    {
+      //Serial.println("Change detect");
+      percent_last_thr = thr_state;
+      percent_last_thr_change = millis();
+      return percent_last_val;
+    }
+
+    uint16_t upackvolt = (uint16_t)((((pack_voltage+usrConf.ubat_offset) / usrConf.foil_num_cells)-2.0) * 100.0);
+    
+    if(thr_state)
+    {
+      if(upackvolt > noload_offset) upackvolt -= noload_offset;
+      else upackvolt = 0;
+    }
+
+    uint8_t percent_rem = 100;
+    while(bc_arr[100-percent_rem] > upackvolt && percent_rem > 0) percent_rem--;
+
+    if(percent_rem < 100 && percent_rem > 0)
+    {
+      //if previous difference is smaller than current one
+      if((upackvolt-bc_arr[100-percent_rem]) > (bc_arr[100-percent_rem-1]-upackvolt))
+      {
+        //use previous one
+        percent_rem += 1;
+      }
+    }
+
+    /*Serial.println("Found percent: ");
+    Serial.print("volt_in_float: ");
+    Serial.print(pack_voltage+usrConf.ubat_offset);
+    Serial.print("V, _in_uint: ");
+    Serial.println(upackvolt);
+    Serial.print("index: ");
+    Serial.print(100-percent_rem);
+    Serial.print(", remain: ");
+    Serial.print(percent_rem);
+    Serial.print(" @ ");
+    Serial.println(bc_arr[100-percent_rem]);*/
+
+    percent_last_val = percent_rem;
+    return percent_rem;
+  }
+  else
+  {
+    //Serial.println("Skip_timeout");
+    return percent_last_val;
+  }
 }
 
 void blinkErr(int num, uint8_t pin)
@@ -168,9 +224,16 @@ void checkSerial()
       else if (command.startsWith("?setConf")) {
         String data = command.substring(command.indexOf(":") + 1);  // Extract everything after ":"
         serSetConf(data);  // Call function for ?setconf with the string after ":"
+      }
+      else if (command.startsWith("?setBC")) {
+        String data = command.substring(command.indexOf(":") + 1);  // Extract everything after ":"
+        serSetBC(data);  // Call function for ?setconf with the string after ":"
       } 
       else if (command == "?clearSPIFFS") {
         serClearConf();  // Call function for ?clearSPIFFS
+      }
+      else if (command == "?clearBC") {
+        serClearBC();  // Call function for ?clearSPIFFS
       }
       else if (command == "?applyConf") {
         serApplyConf();  // Call function for ?clearSPIFFS
@@ -201,13 +264,23 @@ void checkSerial()
       {
         serPrintBat();
       }
+      else if(command == "?testBG")
+      {
+        readTelemetryUntilQuit();
+      }
+      else if(command == "?testPercent")
+      {
+        testPercent();
+      }
       else if (command == "?") {
         // List all possible inputs
         Serial.println("Possible commands:");
         Serial.println("?conf - print info, usrConf");
         Serial.println("?setConf:<data> - write B64 to SPIFFS");
+        Serial.println("?setBC:<data> - write B64 to SPIFFS");
         Serial.println("?applyConf - read conf from SPIFFS and write to usrConf");
         Serial.println("?clearSPIFFS - Clear usrConf from SPIFFS");
+        Serial.println("?clearBC - Clear batcal from SPIFFS");
         Serial.println("?reboot - Reboot the remote");
         Serial.println("?printPWM - Print PWM values until sent 'quit'");
         Serial.println("?printBat - Print analog Bat voltage until sent 'quit'");
@@ -223,6 +296,74 @@ void checkSerial()
       Serial.println("Unknown command. Type '?' for help.");
     }
   }
+}
+
+void testPercent()
+{
+  while(1)
+  {
+    if (Serial.available()) {
+      String input = Serial.readStringUntil('\n'); // read until newline
+      input.trim(); // remove spaces and newlines
+
+      if (input.equalsIgnoreCase("quit")) {
+        Serial.println("Quit command received. Stopping input loop.");
+        break;
+      }
+
+      // Try to parse float
+      float value = input.toFloat();
+
+      // Validate: toFloat returns 0.0 if invalid, so check original string too
+      if (input.length() == 0 || (value == 0.0f && !input.startsWith("0"))) {
+        Serial.println("Invalid input. Please enter a float or 'quit'.");
+      } else if (value >= 0.0f && value <= 100.0f) {
+        Serial.println(getUbatPercent(value));
+      } else {
+        Serial.println("Value out of range (0.0 - 100.0).");
+      }
+    }
+  }
+}
+
+void readTelemetryUntilQuit() {
+    while (true) {
+        if (Serial.available()) {
+            String input = Serial.readStringUntil('\n');  // read line
+            input.trim();  // remove CR/LF/whitespace
+
+            if (input.equalsIgnoreCase("quit")) {
+                Serial.println("Exiting telemetry read loop.");
+                break; // stop the function
+            }
+
+            // Parse values separated by commas
+            int firstComma = input.indexOf(',');
+            int secondComma = input.indexOf(',', firstComma + 1);
+
+            if (firstComma < 0 || secondComma < 0) {
+                Serial.println("Error: Expected 3 values separated by commas.");
+                continue; // wait for next line
+            }
+
+            String val1 = input.substring(0, firstComma);
+            String val2 = input.substring(firstComma + 1, secondComma);
+            String val3 = input.substring(secondComma + 1);
+
+            int bat  = constrain(val1.toInt(), 0, 255);
+            int temp = constrain(val2.toInt(), 0, 255);
+            int link = constrain(val3.toInt(), 0, 255);
+
+            telemetry.foil_bat     = (uint8_t)bat;
+            telemetry.foil_temp    = (uint8_t)temp;
+            telemetry.link_quality = (uint8_t)link;
+
+            Serial.print("Updated telemetry -> ");
+            Serial.print("Bat: "); Serial.print(telemetry.foil_bat);
+            Serial.print(" Temp: "); Serial.print(telemetry.foil_temp);
+            Serial.print(" Link: "); Serial.println(telemetry.link_quality);
+        }
+    }
 }
 
 void serPrintGPS()
@@ -245,14 +386,45 @@ void serPrintBat()
         }
     }
 
-    uint16_t raw = analogRead(P_UBAT_MEAS);
-    raw += analogRead(P_UBAT_MEAS);
-    raw += analogRead(P_UBAT_MEAS);
+    if(usrConf.data_src == 1)
+    {
+      getUbatLoop();
+    }
+    else if(usrConf.data_src == 2)
+    {
+      getVescLoop();
+    }
 
-    float vActual = (float)raw*usrConf.ubat_cal;
+    if(usrConf.data_src == 1)
+    {
+      uint16_t raw = analogRead(P_UBAT_MEAS);
+      raw += analogRead(P_UBAT_MEAS);
+      raw += analogRead(P_UBAT_MEAS);
 
-    Serial.println(vActual);
-
+      float vActual = (float)raw*usrConf.ubat_cal;
+      Serial.print("Measured: ");
+      Serial.print(vActual);
+      Serial.print("V, offset: ");
+      Serial.print(usrConf.ubat_offset);
+      Serial.print("V, final: ");
+      Serial.println(vActual + usrConf.ubat_offset);
+    }
+    else if(usrConf.data_src == 2)
+    {
+      getVescLoop();
+      Serial.print("Measured: ");
+      Serial.print(fbatVolt);
+      Serial.print("V, offset: ");
+      Serial.print(usrConf.ubat_offset);
+      Serial.print("V, final: ");
+      Serial.println(fbatVolt + usrConf.ubat_offset);
+    }
+    else
+    {
+      Serial.println("data_src not selected! Exiting...");
+      break;
+    }
+    
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
@@ -286,10 +458,39 @@ void serSetConf(String data) {
   delete[] encodedData;
 }
 
+void serSetBC(String data) {
+  Serial.print("Setting batcal to: ");
+  Serial.println(data);
+  
+  uint8_t* encodedData = new uint8_t[data.length()];
+  // Call the function to fill the encodedData array
+  for (size_t i = 0; i < data.length(); i++) {
+    encodedData[i] = data[i];  // Convert each character to uint8_t
+  }
+
+  // Save to SPIFFS
+  File file = SPIFFS.open(BC_FILE_PATH, FILE_WRITE);
+  if (!file) {
+      Serial.println("Failed to open file for writing");
+      delete[] encodedData;
+      return;
+  }
+  file.write(encodedData, data.length());
+  file.close();
+  Serial.println("Batcal saved to SPIFFS as Base64");
+  delete[] encodedData;
+}
+
 void serClearConf()
 {
   Serial.println("Deleting conf from SPIFFS");
   deleteConfFromSPIFFS();
+}
+
+void serClearBC()
+{
+  Serial.println("Deleting batcal from SPIFFS");
+  deleteBCFromSPIFFS();
 }
 
 void serPrintTasks()
@@ -490,8 +691,9 @@ void printConfStruct(const confStruct &data) {
 
     Serial.print("Failsafe Time: "); Serial.println(data.failsafe_time);
 
-    Serial.print("Foil Battery Low Voltage: "); Serial.println(data.foil_bat_low, 3);
-    Serial.print("Foil Battery High Voltage: "); Serial.println(data.foil_bat_high, 3);
+    //Serial.print("Foil Battery Low Voltage: "); Serial.println(data.foil_bat_low, 3);
+    //Serial.print("Foil Battery High Voltage: "); Serial.println(data.foil_bat_high, 3);
+    Serial.print("Foil Battery Number of Cells: "); Serial.println(data.foil_num_cells);
 
     Serial.print("BMS Detection Active: "); Serial.println(data.bms_det_active);
     Serial.print("Water Detection Active: "); Serial.println(data.wet_det_active);

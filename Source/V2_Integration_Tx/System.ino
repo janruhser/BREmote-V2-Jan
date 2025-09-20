@@ -8,7 +8,7 @@ void enterSetup()
   Serial.println("**************************************");
   Serial.println("**          BREmote V2 TX           **");
   Serial.printf("**        MAC: %012llX         **\n", ESP.getEfuseMac());
-  Serial.print("**     HW Identifier: "); Serial.print(checkHWConfig()); Serial.println("       **");
+  //Serial.print("**     HW Identifier: "); Serial.print(checkHWConfig()); Serial.println("       **");
   Serial.printf("**          SW Version: %-10d  **\n", SW_VERSION);
   Serial.printf("**  Compiled: %s %s  **\n", __DATE__, __TIME__);
   Serial.println("**************************************");
@@ -434,7 +434,7 @@ void serPrintConf()
   Serial.println("**************************************");
   Serial.println("**          BREmote V2 TX           **");
   Serial.printf("**        MAC: %012llX         **\n", ESP.getEfuseMac());
-  Serial.print("**     HW Identifier: "); Serial.print(checkHWConfig()); Serial.println("       **");
+  //Serial.print("**     HW Identifier: "); Serial.print(checkHWConfig()); Serial.println("       **");
   Serial.printf("**          SW Version: %-10d  **\n", SW_VERSION);
   Serial.printf("**  Compiled: %s %s  **\n", __DATE__, __TIME__);
   Serial.println("**************************************");
@@ -479,7 +479,7 @@ void checkCharger()
     {
       setBrightness(0x01);
       advanceChargeAnimation();
-      uint8_t chglevel = map(c_bat_volt, 330, 420, 0, 7);
+      uint8_t chglevel = map(c_bat_volt, 330, 420, 0, 10);
       displayHorzBargraph(7,chglevel);
       updateDisplay();
       checkSerial();
@@ -492,7 +492,7 @@ void checkCharger()
       displayBuffer[4] = 0x1F;
       displayBuffer[2] = 0x3F;
       displayBuffer[3] = 0x3F;
-      displayHorzBargraph(7,7);
+      displayHorzBargraph(7,10);
       updateDisplay();
       checkSerial();
       delay(200);
@@ -521,6 +521,7 @@ void checkCharger()
       }
     }
   }
+  displayHorzBargraph(7,0);
   setBrightness(0x0F);
 }
 

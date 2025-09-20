@@ -15,7 +15,7 @@
 #include "SPIFFS.h"
 #include "mbedtls/base64.h"
 
-#define SW_VERSION 1
+#define SW_VERSION 2
 const char* CONF_FILE_PATH = "/data.txt";
 
 //#define DELETE_SPIFFS_CONF_AT_STARTUP 1
@@ -27,19 +27,19 @@ struct confStruct {
     //Version
     uint16_t version;
 
-    uint16_t radio_preset;
-    int16_t rf_power;
+    uint16_t radio_preset; //1: 868MHz (EU), 2: 915MHz (US/AU)
+    int16_t rf_power; //Tx power from -9 to 22
 
     //Calibration of Tog&Thr
     uint16_t cal_ok;
     uint16_t cal_offset;
 
-    uint16_t thr_idle;//15690
-    uint16_t thr_pull;//12110
+    uint16_t thr_idle;
+    uint16_t thr_pull;
 
-    uint16_t tog_left;//16310
-    uint16_t tog_mid;//13080
-    uint16_t tog_right;//9480
+    uint16_t tog_left;
+    uint16_t tog_mid;
+    uint16_t tog_right;
 
     //UI Threshold & Times
     uint16_t tog_deadzone; //Deadzone in the middle of toggle 500
@@ -57,7 +57,7 @@ struct confStruct {
     uint16_t no_gear; //Gears can't be switched
     uint16_t max_gears; //Max user gears
     uint16_t startgear; //The gear that is set after poweron or unlock (0 to 9)
-    uint16_t steer_enabled; //If steering feature is enable
+    uint16_t steer_enabled; //If steering feature is enabled
     
     uint16_t thr_expo; //Exponential function, 50 = linear
     uint16_t thr_expo1; //currently unused
@@ -66,7 +66,16 @@ struct confStruct {
     uint16_t steer_expo1; //currently unused
 
     //System parameters
-    float ubat_cal; //ADC to volt cal for bat meas 0.185662
+    float ubat_cal; //ADC to volt cal for bat meas, default 0.000185662
+
+    // GPS features related flags
+    uint16_t gps_en;           // GPS runtime enable flag (0=disabled, 1=enabled)
+    uint16_t followme_mode; // Follow-me runtime mode flag (0=disabled, 1=behind, 2=near_right, 3=near_left)
+    uint16_t kalman_en;        // Kalman filter runtime enable flag (0=disabled, 1=enabled)
+    uint16_t speed_src;   //0: GPS RX kmh, 1: GPS RX knots, 2: GPS TX kmh, 3: GPS TX knots
+    
+    //Follow-me timeouts (transmitted to RX via META)
+    uint16_t tx_gps_stale_timeout_ms; // TX GPS data stale timeout (ms)
 
     //Comms
     uint16_t paired;
@@ -75,7 +84,7 @@ struct confStruct {
 };
 
 confStruct usrConf;
-confStruct defaultConf = {SW_VERSION,1,0,0,100,0,0,0,0,0,500,30,500,5000,2000,100,1000,10,2000,0,0,10,0,1,50,50,50,50,0.000185662,0,{0, 0, 0}, {0, 0, 0}};
+confStruct defaultConf = {SW_VERSION, 1, 0, 0, 100, 0, 0, 0, 0, 0, 500, 30, 500, 5000, 2000, 100, 1000, 10, 2000, 0, 0, 10, 0, 1, 50, 0, 50, 0, 0.000185662f, 0, 0, 0, 0, 1000, 0, {0, 0, 0}, {0, 0, 0}};
 
 
 //Telemetry to receive, MUST BE 8-bit!!
