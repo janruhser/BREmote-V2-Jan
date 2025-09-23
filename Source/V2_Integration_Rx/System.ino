@@ -140,12 +140,17 @@ uint8_t getUbatPercent(float pack_voltage)
       return percent_last_val;
     }
 
-    uint16_t upackvolt = (uint16_t)((((pack_voltage+usrConf.ubat_offset) / usrConf.foil_num_cells)-2.0) * 100.0);
+    uint16_t upackvolt = 0;
     
     if(thr_state)
     {
-      if(upackvolt > noload_offset) upackvolt -= noload_offset;
+      float fpackvolt = ((((pack_voltage+usrConf.ubat_offset) / usrConf.foil_num_cells)-2.0-noload_offset) * 100.0);
+      if(fpackvolt > 0) upackvolt = (uint16_t)fpackvolt;
       else upackvolt = 0;
+    }
+    else
+    {
+      upackvolt = (uint16_t)((((pack_voltage+usrConf.ubat_offset) / usrConf.foil_num_cells)-2.0) * 100.0);
     }
 
     uint8_t percent_rem = 100;
@@ -160,8 +165,8 @@ uint8_t getUbatPercent(float pack_voltage)
         percent_rem += 1;
       }
     }
-
-    /*Serial.println("Found percent: ");
+/*
+    Serial.println("Found percent: ");
     Serial.print("volt_in_float: ");
     Serial.print(pack_voltage+usrConf.ubat_offset);
     Serial.print("V, _in_uint: ");

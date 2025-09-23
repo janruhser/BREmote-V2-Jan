@@ -197,11 +197,11 @@ bool readBCFromSPIFFS() {
         return false;
     }
 
-    noload_offset = decodedData[0];
+    noload_offset = ((float)decodedData[0]) / 500.0;
     memcpy(bc_arr, &decodedData[1], 101 * sizeof(decodedData[0]));
 
     Serial.print("batcal: noload_offset: ");
-    Serial.print( (float)noload_offset / 100.0);
+    Serial.print(noload_offset);
     Serial.print("V, 100% rem. @ ");
     Serial.print((float)bc_arr[0] / 100.0 + 2.0);
     Serial.print("V, 0% rem. @ ");

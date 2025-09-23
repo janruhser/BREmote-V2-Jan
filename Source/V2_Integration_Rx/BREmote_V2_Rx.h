@@ -161,7 +161,7 @@ volatile unsigned long last_uart_packet = 0;
 volatile uint8_t bind_pin_state = 0;
 
 float fbatVolt = 0.0;
-uint8_t noload_offset = 0;
+float noload_offset = 0.0;
 uint8_t bc_arr[101];
 uint8_t percent_last_val = 0xFF;
 uint8_t percent_last_thr = 1;

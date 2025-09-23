@@ -105,6 +105,8 @@ Rx:
 # Changelog:
 
 ## V1.2
+### 2025-09-24:
+* Changed batconf noload offset to 5x multiplier
 ### 2025-09-20:
 * Release V1.2.: Change SW version and config version (preparation for follow me)
 * Add improved battery measurement
