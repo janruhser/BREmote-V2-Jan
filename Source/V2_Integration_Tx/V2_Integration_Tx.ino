@@ -72,6 +72,11 @@ void loop()
 
   checkSerial();
 
+  if(millis() - last_packet > 300000)
+  {
+    deepSleep();
+  }
+
   if(remote_error == 0)
   {
     if(system_locked)

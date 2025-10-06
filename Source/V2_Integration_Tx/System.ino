@@ -21,6 +21,21 @@ void exitSetup()
   Serial.println("");
 }
 
+void deepSleep()
+{
+  displayDigits(LET_X, LET_X);
+  updateDisplay();
+  setBrightness(0);
+  Wire.beginTransmission(DISPLAY_ADDRESS);
+  //On, blink 2Hz
+  Wire.write(0x83);
+  Wire.endTransmission();
+  Serial.println("Going to sleep now");
+  radio.sleep();
+  Serial.flush();
+  esp_deep_sleep_start();
+}
+
 String checkHWConfig()
 {
   //Not sure why this is neccessary, otherwise pullup is too stron

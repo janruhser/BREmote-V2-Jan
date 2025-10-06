@@ -20,6 +20,9 @@
 * [Serial Terminal](https://lbre.de/BREmote/sertest.html)
 * [Expo Tool](https://lbre.de/BREmote/expo.html)
 * [Flash Download Tool](https://dl.espressif.com/public/flash_download_tool.zip)
+* [LUT creation tool](https://lbre.de/BREmote/bat_conf.html)
+* [Premade LUTs](https://lbre.de/BREmote/LUT.html)
+* [Plot digitizer](https://apps.automeris.io/downloads/WebPlotDigitizer-4.7-win32-x64.zip)
 
 
 ## Usage:
@@ -27,7 +30,8 @@
 
 ## Status/Error Codes:
 Tx:
-* Ex : Remote Errors
+* XX: Remote went into power saver (5 min no connection) -> power off and on again 
+* Ex: Remote Errors
 * EP: Not paired
 * EC: Not Cald
 * ESV: Error Config version SPIFFS <> Build
@@ -105,6 +109,8 @@ Rx:
 # Changelog:
 
 ## V1.2
+### 2025-10-06
+* Add emergency battery saver (5min no connection -> Tx goes to low power mode)
 ### 2025-09-24:
 * Changed batconf noload offset to 5x multiplier
 ### 2025-09-20:
