@@ -53,6 +53,7 @@ void setup()
 }
 
 unsigned long loop_timer = 0;
+int wetness_counter = 0;
 
 void loop()
 {
@@ -63,7 +64,12 @@ void loop()
     loop_timer = millis();
     if(usrConf.wet_det_active)
     {
-      checkWetness();
+      wetness_counter++;
+      if(wetness_counter >= 10)
+      {
+        checkWetness();
+        wetness_counter = 0;
+      }
     }
 
     if(usrConf.gps_en)

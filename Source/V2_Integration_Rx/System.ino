@@ -100,9 +100,18 @@ void checkWetness()
   vTaskDelay(pdMS_TO_TICKS(50));
   if(!aw.digitalRead(AP_WET_MEAS))
   {
-    if(telemetry.error_code == 0)
+    uint8_t amt = 0;
+    for(uint8_t i = 0; i < 5; i++)
     {
-      telemetry.error_code = 7;
+      vTaskDelay(pdMS_TO_TICKS(50));
+      amt += aw.digitalRead(AP_WET_MEAS);
+    }
+    if(amt == 0)
+    {
+      if(telemetry.error_code == 0)
+      {
+       telemetry.error_code = 7;
+      }
     }
   }
   else

@@ -109,6 +109,8 @@ Rx:
 # Changelog:
 
 ## V1.2
+### 2025-10-23
+* Change Wetness Detection Sensitivity and Frequency
 ### 2025-10-06
 * Add emergency battery saver (5min no connection -> Tx goes to low power mode)
 ### 2025-09-24:
