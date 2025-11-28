@@ -108,7 +108,9 @@ Rx:
 
 # Changelog:
 
-## V1.2
+## V2.2.x
+### 2025-11-28
+* Fix startup buttons not working when no_gear and no_lock active
 ### 2025-10-23
 * Change Wetness Detection Sensitivity and Frequency
 ### 2025-10-06
@@ -116,11 +118,11 @@ Rx:
 ### 2025-09-24:
 * Changed batconf noload offset to 5x multiplier
 ### 2025-09-20:
-* Release V1.2.: Change SW version and config version (preparation for follow me)
+* Release V2.2.: Change SW version and config version (preparation for follow me)
 * Add improved battery measurement
 * Change display layout (swap battery and signal graph)
 
-## V1.1:
+## V2.1.x:
 ### 2025-09-02:
 * Move vias next to connector on Bot_Shield
 * Add 3D files for Tx-GPS integration

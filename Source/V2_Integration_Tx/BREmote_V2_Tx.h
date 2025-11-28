@@ -135,6 +135,8 @@ volatile uint8_t remote_sq = 0;
 volatile uint8_t remote_error = 0;
 volatile bool remote_error_blocked = 0;
 
+volatile bool in_setup = 0;
+
 // Buffer for received data
 volatile uint8_t payload_buffer[10];                // Maximum payload size is 10 bytes
 volatile uint8_t payload_received = 0;              // Length of received payload

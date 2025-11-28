@@ -70,7 +70,7 @@ void calcFilter()
 
 
   //Block toggle input when steering
-  if((thr_scaled > 3 && system_locked == 0 && !in_menu && usrConf.steer_enabled)||(usrConf.no_gear && usrConf.no_lock && !remote_error))
+  if((thr_scaled > 3 && system_locked == 0 && !in_menu && usrConf.steer_enabled)||(usrConf.no_gear && usrConf.no_lock && !remote_error && !in_setup))
   {
     //If so, block steer and reset counter
     toggle_blocked_by_steer = 1;

@@ -6,6 +6,7 @@ Ticker ticksrc;
 
 void setup()
 {
+  in_setup = true;
   enterSetup();
 
   Wire.begin(P_I2C_SDA, P_I2C_SCL); //SDA, SCL
@@ -63,6 +64,7 @@ void setup()
   }
 
   exitSetup();
+  in_setup = false;
 }
 
 void loop()
