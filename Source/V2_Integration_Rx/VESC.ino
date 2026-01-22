@@ -62,7 +62,7 @@ bool getValuesSelective(Stream* interface)
     int16_t batVolt = 0;
 
     int32_t cnt = 5; //Dont care about the Mask    
-    fetTemp = buffer_get_int16(message, &cnt);
+    fetTemp = buffer_get_int16(message, &cnt); 
     #ifdef VESC_MORE_VALUES
       motCur = buffer_get_int32(message, &cnt);
       batCur = buffer_get_int32(message, &cnt);

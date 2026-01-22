@@ -109,6 +109,9 @@ Rx:
 # Changelog:
 
 ## V2.2.x
+### 2026-01-22
+* Fix Serial() pushing voltage to USB magnet pins
+* Fix GPS init sequence
 ### 2025-11-28
 * Fix startup buttons not working when no_gear and no_lock active
 ### 2025-10-23

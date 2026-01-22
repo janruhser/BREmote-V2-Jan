@@ -182,6 +182,8 @@ volatile bool exitChargeScreen = 0;
 
 volatile bool followme_enabled = false;
 
+volatile bool serialOff = false;
+
 /* 
 ** Defines
 */

@@ -65,6 +65,15 @@ void setup()
 
   exitSetup();
   in_setup = false;
+
+  delay(100);
+  if(serialOff)
+  {
+    Serial.end();
+    digitalWrite(20, LOW); pinMode(20, OUTPUT);
+    digitalWrite(21, LOW); pinMode(21, OUTPUT);
+    digitalWrite(9, LOW); pinMode(9, OUTPUT);
+  }
 }
 
 void loop()

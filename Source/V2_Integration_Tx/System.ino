@@ -236,75 +236,78 @@ void checkStartupButtons()
 
 void checkSerial()
 {
-  // Check if data is available on the serial port
-  if (Serial.available() > 0) {
-    String command = Serial.readStringUntil('\n');  // Read input until newline
+  if(!serialOff)
+  {
+    // Check if data is available on the serial port
+    if (Serial.available() > 0) {
+      String command = Serial.readStringUntil('\n');  // Read input until newline
 
-    // Trim leading and trailing spaces
-    command.trim();
-    
-    // Process the command
-    if (command.startsWith("?")) {
-      if (command == "?conf") {
-        serPrintConf();  // Call function for ?conf
-      } 
-      else if (command.startsWith("?setConf")) {
-        String data = command.substring(command.indexOf(":") + 1);  // Extract everything after ":"
-        serSetConf(data);  // Call function for ?setconf with the string after ":"
-      } 
-      else if (command == "?clearSPIFFS") {
-        serClearConf();  // Call function for ?clearSPIFFS
-      }
-      else if (command == "?applyConf") {
-        serApplyConf();  // Call function for ?clearSPIFFS
-      }
-      else if (command == "?reboot")
-      {
-        Serial.println("Rebooting now...");
-        delay(1000);
-        ESP.restart();
-      }
-      else if (command == "?exitChg")
-      {
-        Serial.println(" Exit by user");
-        exitChargeScreen = 1;
-      }
-      else if(command == "?printRSSI")
-      {
-        serPrintRSSI();
-      }
-      else if(command == "?printInputs")
-      {
-        serPrintInputs();
-      }
-      else if(command == "?printTasks")
-      {
-        serPrintTasks();
-      }
-      else if(command == "?printPackets")
-      {
-        serPrintPackets();
-      }
-      else if (command == "?") {
-        // List all possible inputs
-        Serial.println("Possible commands:");
-        Serial.println("?conf - print info, usrConf");
-        Serial.println("?setConf:<data> - write B64 to SPIFFS");
-        Serial.println("?applyConf - read conf from SPIFFS and write to usrConf");
-        Serial.println("?clearSPIFFS - Clear usrConf from SPIFFS");
-        Serial.println("?reboot - Reboot the remote");
-        Serial.println("?exitChg - Exit the charge screen");
-        Serial.println("?printRSSI - Print RSSI and SNR values until sent 'quit'");
-        Serial.println("?printInputs - Print raw input values until sent 'quit'");
-        Serial.println("?printTasks - Print task stack usage until sent 'quit'");
-        Serial.println("?printPackets - Print current state of tx,rx packets and relation");
+      // Trim leading and trailing spaces
+      command.trim();
+      
+      // Process the command
+      if (command.startsWith("?")) {
+        if (command == "?conf") {
+          serPrintConf();  // Call function for ?conf
+        } 
+        else if (command.startsWith("?setConf")) {
+          String data = command.substring(command.indexOf(":") + 1);  // Extract everything after ":"
+          serSetConf(data);  // Call function for ?setconf with the string after ":"
+        } 
+        else if (command == "?clearSPIFFS") {
+          serClearConf();  // Call function for ?clearSPIFFS
+        }
+        else if (command == "?applyConf") {
+          serApplyConf();  // Call function for ?clearSPIFFS
+        }
+        else if (command == "?reboot")
+        {
+          Serial.println("Rebooting now...");
+          delay(1000);
+          ESP.restart();
+        }
+        else if (command == "?exitChg")
+        {
+          Serial.println(" Exit by user");
+          exitChargeScreen = 1;
+        }
+        else if(command == "?printRSSI")
+        {
+          serPrintRSSI();
+        }
+        else if(command == "?printInputs")
+        {
+          serPrintInputs();
+        }
+        else if(command == "?printTasks")
+        {
+          serPrintTasks();
+        }
+        else if(command == "?printPackets")
+        {
+          serPrintPackets();
+        }
+        else if (command == "?") {
+          // List all possible inputs
+          Serial.println("Possible commands:");
+          Serial.println("?conf - print info, usrConf");
+          Serial.println("?setConf:<data> - write B64 to SPIFFS");
+          Serial.println("?applyConf - read conf from SPIFFS and write to usrConf");
+          Serial.println("?clearSPIFFS - Clear usrConf from SPIFFS");
+          Serial.println("?reboot - Reboot the remote");
+          Serial.println("?exitChg - Exit the charge screen");
+          Serial.println("?printRSSI - Print RSSI and SNR values until sent 'quit'");
+          Serial.println("?printInputs - Print raw input values until sent 'quit'");
+          Serial.println("?printTasks - Print task stack usage until sent 'quit'");
+          Serial.println("?printPackets - Print current state of tx,rx packets and relation");
+        }
+        else {
+          Serial.println("Unknown command. Type '?' for help.");
+        }
       }
       else {
         Serial.println("Unknown command. Type '?' for help.");
       }
-    }
-    else {
-      Serial.println("Unknown command. Type '?' for help.");
     }
   }
 }
@@ -488,6 +491,7 @@ void checkCharger()
     {
       //Not charging
       Serial.println(" Done");
+      serialOff = true;
       break;
     }
     else if(chgstat > 6000 && chgstat < 10000)
@@ -533,6 +537,7 @@ void checkCharger()
           scroll3Digits(LET_E, LET_C, LET_H, 200);
         }
         exitChargeScreen = 1;
+        serialOff = true;
       }
     }
   }

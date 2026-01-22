@@ -1,64 +1,41 @@
 void configureGPS() {
-  // ---------- UBX-CFG-PRT (set baud rate to 115200) ----------
+  // UBX-CFG-PRT packet for 115200 baud (UART1, 8N1, UBX+NMEA)
+  // Checksum is pre-calculated here for reliability
   byte setBaud[] = {
-    0xB5, 0x62,             // UBX header
-    0x06, 0x00,             // CFG-PRT
-    0x14, 0x00,             // Payload length = 20 bytes
-    0x01,                   // Port ID = 1 (UART)
-    0x00,                   // Reserved
-    0x00, 0x00,             // txReady
-    0xD0, 0x08, 0x00, 0x00, // mode = 8N1
-    0x00, 0xC2, 0x01, 0x00, // baudRate = 115200 (0x01C200)
-    0x07, 0x00,             // inProtoMask = UBX + NMEA
-    0x03, 0x00,             // outProtoMask = UBX + NMEA
-    0x00, 0x00,             // flags
-    0x00, 0x00,             // reserved
-    0x00, 0x00              // checksum placeholders
+    0xB5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 
+    0xD0, 0x08, 0x00, 0x00, 0x00, 0xC2, 0x01, 0x00, 0x07, 0x00, 
+    0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x7E
   };
 
-  // ---------- UBX-CFG-RATE (set update rate to 5Hz) ----------
+  // UBX-CFG-RATE for 5Hz (200ms)
   byte setRate[] = {
-    0xB5, 0x62,             // UBX header
-    0x06, 0x08,             // CFG-RATE
-    0x06, 0x00,             // Payload length = 6 bytes
-    0xC8, 0x00,             // measRate = 200ms = 5Hz (0x00C8)
-    0x01, 0x00,             // navRate = 1
-    0x01, 0x00,             // timeRef = UTC
-    0x00, 0x00              // checksum placeholders
+    0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0xC8, 0x00, 0x01, 0x00, 
+    0x01, 0x00, 0xDE, 0x6A
   };
-
-  // Compute checksums
-  auto addChecksum = [](byte* msg, int len) {
-    byte ck_a = 0, ck_b = 0;
-    for (int i = 2; i < len - 2; i++) {
-      ck_a += msg[i];
-      ck_b += ck_a;
-    }
-    msg[len - 2] = ck_a;
-    msg[len - 1] = ck_b;
-  };
-
-  addChecksum(setBaud, sizeof(setBaud));
-  addChecksum(setRate, sizeof(setRate));
-
-  // Send baud config at current default baud rate (usually 9600)
   setUartMux(1);
-  Serial1.end();
+  // 1. Initial connection at default GPS speed
+  Serial.println("GPS: Connecting at 9600...");
   Serial1.begin(9600, SERIAL_8N1, P_U1_RX, P_U1_TX);
-  while(!Serial1) vTaskDelay(pdMS_TO_TICKS(10));
-
-  Serial1.write(setBaud, sizeof(setBaud));
-  Serial1.flush();
   delay(200);
 
-  // Reopen Serial1 at new baud rate
+  // 2. Send Baud Change Command
+  Serial1.write(setBaud, sizeof(setBaud));
+  
+  // CRITICAL: flush() only clears the buffer, hardware needs time to send
+  Serial1.flush(); 
+  delay(50); // Give the UART hardware ~50ms to finish sending the packet
+  
+  // 3. Switch ESP32 to the new speed
   Serial1.end();
+  delay(100);
   Serial1.begin(115200, SERIAL_8N1, P_U1_RX, P_U1_TX);
-  while(!Serial1) vTaskDelay(pdMS_TO_TICKS(10));
+  Serial.println("GPS: Baud switched to 115200");
 
-  // Send update rate config at new baud rate
+  // 4. Send Rate Command at the new speed
+  delay(100);
   Serial1.write(setRate, sizeof(setRate));
   Serial1.flush();
+  Serial.println("GPS: Config Complete (115200 baud, 5Hz)");
 }
 
 // Task for GPS reading
