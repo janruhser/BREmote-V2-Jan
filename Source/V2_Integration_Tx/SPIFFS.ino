@@ -52,7 +52,7 @@ void getConfFromSPIFFS()
     saveConfToSPIFFS(defaultConf);
     if (!readConfFromSPIFFS(usrConf)) 
     {
-      Serial.println("Error wiriting default conf!");
+      Serial.println("Error writing default conf!");
       while(1) scroll4Digits(LET_E, 5, LET_P, 4, 200);
     }
   }
@@ -74,21 +74,27 @@ void saveConfToSPIFFS(const confStruct& data) {
         return;
     }
 
-    // Save to SPIFFS
-    File file = SPIFFS.open(CONF_FILE_PATH, FILE_WRITE);
+    // Save to SPIFFS via temp file to prevent corruption on power loss
+    File file = SPIFFS.open("/data.tmp", FILE_WRITE);
     if (!file) {
-        Serial.println("Failed to open file for writing");
+        Serial.println("Failed to open temp file for writing");
         delete[] encodedData;
         return;
     }
     file.write(encodedData, encodedLen);
     file.close();
+    SPIFFS.remove(CONF_FILE_PATH);
+    SPIFFS.rename("/data.tmp", CONF_FILE_PATH);
     Serial.println("Struct saved to SPIFFS as Base64");
     Serial.println("Encoded Data: " + String((char*)encodedData));
     delete[] encodedData;
 }
 
 bool readConfFromSPIFFS(confStruct& data) {
+    // Recover from interrupted atomic write
+    if (!SPIFFS.exists(CONF_FILE_PATH) && SPIFFS.exists("/data.tmp")) {
+        SPIFFS.rename("/data.tmp", CONF_FILE_PATH);
+    }
     if (!SPIFFS.exists(CONF_FILE_PATH)) {
         Serial.println("File does not exist");
         return false;
@@ -115,6 +121,12 @@ bool readConfFromSPIFFS(confStruct& data) {
         return false;
     }
 
+    if (decodedLen < sizeof(confStruct)) {
+        Serial.println("Config data too short, corrupted?");
+        delete[] decodedData;
+        return false;
+    }
+
     memcpy(&data, decodedData, sizeof(confStruct));
     delete[] decodedData;
     Serial.println("Struct successfully read from SPIFFS");
@@ -122,6 +134,7 @@ bool readConfFromSPIFFS(confStruct& data) {
 }
 
 void deleteConfFromSPIFFS() {
+    SPIFFS.remove("/data.tmp");
     if (SPIFFS.remove(CONF_FILE_PATH)) {
         Serial.println("File deleted successfully");
     } else {

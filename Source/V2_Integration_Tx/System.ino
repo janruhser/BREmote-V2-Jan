@@ -38,7 +38,7 @@ void deepSleep()
 
 String checkHWConfig()
 {
-  //Not sure why this is neccessary, otherwise pullup is too stron
+  //Not sure why this is necessary, otherwise pullup is too strong
   pinMode(18, OUTPUT);
   digitalWrite(18, HIGH);
   digitalWrite(18, LOW);
@@ -250,15 +250,15 @@ void checkSerial()
         if (command == "?conf") {
           serPrintConf();  // Call function for ?conf
         } 
-        else if (command.startsWith("?setConf")) {
-          String data = command.substring(command.indexOf(":") + 1);  // Extract everything after ":"
-          serSetConf(data);  // Call function for ?setconf with the string after ":"
+        else if (command.startsWith("?setConf:")) {
+          String data = command.substring(9);  // Extract everything after "?setConf:"
+          serSetConf(data);
         } 
         else if (command == "?clearSPIFFS") {
           serClearConf();  // Call function for ?clearSPIFFS
         }
         else if (command == "?applyConf") {
-          serApplyConf();  // Call function for ?clearSPIFFS
+          serApplyConf();
         }
         else if (command == "?reboot")
         {
@@ -328,15 +328,17 @@ void serSetConf(String data) {
     encodedData[i] = data[i];  // Convert each character to uint8_t
   }
 
-  // Save to SPIFFS
-  File file = SPIFFS.open(CONF_FILE_PATH, FILE_WRITE);
+  // Save to SPIFFS via temp file to prevent corruption on power loss
+  File file = SPIFFS.open("/data.tmp", FILE_WRITE);
   if (!file) {
-      Serial.println("Failed to open file for writing");
+      Serial.println("Failed to open temp file for writing");
       delete[] encodedData;
       return;
   }
   file.write(encodedData, data.length());
   file.close();
+  SPIFFS.remove(CONF_FILE_PATH);
+  SPIFFS.rename("/data.tmp", CONF_FILE_PATH);
   Serial.println("Struct saved to SPIFFS as Base64");
   delete[] encodedData;
 }
@@ -347,20 +349,25 @@ void serClearConf()
   deleteConfFromSPIFFS();
 }
 
+// Returns true if "quit" was received on Serial
+bool checkSerialQuit()
+{
+  if (Serial.available() > 0) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    if (input.equals("quit")) {
+      Serial.println("Stopping print loop.");
+      return true;
+    }
+  }
+  return false;
+}
+
 void serPrintTasks()
 {
-  while (true) 
+  while (true)
   {
-    if (Serial.available() > 0) {
-        String input = Serial.readStringUntil('\n'); // Read the input command
-        input.trim(); // Remove any whitespace or newline characters
-        
-        // If the received command matches the stop command, exit the loop
-        if (input.equals("quit")) {
-            Serial.println("Stopping print loop.");
-            break;
-        }
-    }
+    if(checkSerialQuit()) break;
 
     Serial.println("\n=== Task Stack Usage ===");
 
@@ -384,27 +391,23 @@ void serPrintPackets()
   Serial.print("Received: ");
   Serial.println(num_rcv_packets);
   Serial.print("Ratio: ");
-  Serial.print(((float)num_rcv_packets/(float)num_sent_packets)*100);
-  Serial.println(" %");
+  if(num_sent_packets > 0)
+  {
+    Serial.print(((float)num_rcv_packets/(float)num_sent_packets)*100);
+    Serial.println(" %");
+  }
+  else
+  {
+    Serial.println("N/A");
+  }
 }
 
 void serPrintRSSI()
 {
-  while (true) 
+  while (true)
   {
-    // Check if data is available on Serial
-    if (Serial.available() > 0) {
-        String input = Serial.readStringUntil('\n'); // Read the input command
-        input.trim(); // Remove any whitespace or newline characters
-        
-        // If the received command matches the stop command, exit the loop
-        if (input.equals("quit")) {
-            Serial.println("Stopping print loop.");
-            break;
-        }
-    }
-    
-    // Print the variable
+    if(checkSerialQuit()) break;
+
     if(millis()-last_packet < 1000)
     {
       Serial.print("RSSI: ");
@@ -424,21 +427,10 @@ void serPrintRSSI()
 
 void serPrintInputs()
 {
-  while (true) 
+  while (true)
   {
-    // Check if data is available on Serial
-    if (Serial.available() > 0) {
-        String input = Serial.readStringUntil('\n'); // Read the input command
-        input.trim(); // Remove any whitespace or newline characters
-        
-        // If the received command matches the stop command, exit the loop
-        if (input.equals("quit")) {
-            Serial.println("Stopping print loop.");
-            break;
-        }
-    }
-    
-    
+    if(checkSerialQuit()) break;
+
     Serial.print("Throttle: ");
     Serial.print(thr_scaled);
     Serial.print(", Steering: ");
@@ -461,6 +453,7 @@ void serPrintConf()
   File file = SPIFFS.open(CONF_FILE_PATH, FILE_READ);
   if (!file) {
       Serial.println("Failed to open file for reading");
+      return;
   }
 
   String encodedString = file.readString();
@@ -470,9 +463,9 @@ void serPrintConf()
   printConfStruct(usrConf);
 }
 
-uint8_t chg_err_cnt = 0;
 void checkCharger()
 {
+  uint8_t chg_err_cnt = 0;
   Serial.print("Checking if charging...");
 
   while(!exitChargeScreen)
@@ -504,7 +497,7 @@ void checkCharger()
       checkSerial();
       delay(200);
     }
-    else if(chgstat > 11000 && chgstat < 18000)
+    else if(chgstat > 10000 && chgstat < 18000)
     {
       setBrightness(0x01);
       displayBuffer[1] = 0x1F;
@@ -531,10 +524,10 @@ void checkCharger()
         Serial.print("Stat: ");
         Serial.println(chgstat);
         int timeout = 0;
-        while(timeout < 4)
+        while(timeout < 3)
         {
           timeout++;
-          scroll3Digits(LET_E, LET_C, LET_H, 200);
+          scroll3Digits(LET_E, LET_C, LET_H, 100);
         }
         exitChargeScreen = 1;
         serialOff = true;

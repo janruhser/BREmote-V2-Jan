@@ -23,6 +23,8 @@ const char* CONF_FILE_PATH = "/data.txt";
 /*
 ** Structs
 */
+// NOTE: Not packed — sizeof is 80 due to 2 bytes tail padding (float forces 4-byte alignment).
+// Do not add __attribute__((packed)), it would break existing SPIFFS configs and the web config tool.
 struct confStruct {
     //Version
     uint16_t version;
@@ -99,10 +101,11 @@ struct __attribute__((packed)) TelemetryPacket {
 } telemetry;
 
 /*
-** FreeROTS/Task handles
+** FreeRTOS/Task handles
 */
-const int maxTasks = 10;
-TaskStatus_t taskStats[maxTasks];
+// Unused — serPrintTasks() uses uxTaskGetStackHighWaterMark() directly
+//const int maxTasks = 10;
+//TaskStatus_t taskStats[maxTasks];
 
 // Task handles
 TaskHandle_t sendDataHandle = NULL;
@@ -119,7 +122,8 @@ extern TaskHandle_t loopTaskHandle;
 ** Variables
 */
 uint16_t displayBuffer[8];
-uint8_t digitBuffer[6];
+// Unused — shadowed by local declarations in displayDigits(), scroll3Digits(), scroll4Digits()
+//uint8_t digitBuffer[6];
 
 volatile bool rfInterrupt = false;
 
@@ -129,21 +133,23 @@ volatile unsigned long last_packet = 0;
 volatile unsigned long num_sent_packets = 0;
 volatile unsigned long num_rcv_packets = 0;
 
-volatile uint8_t vesc_bat = 0;
-volatile uint8_t vesc_temp = 0;
-volatile uint8_t remote_sq = 0;
+// Unused — replaced by TelemetryPacket struct
+//volatile uint8_t vesc_bat = 0;
+//volatile uint8_t vesc_temp = 0;
+//volatile uint8_t remote_sq = 0;
 volatile uint8_t remote_error = 0;
 volatile bool remote_error_blocked = 0;
 
 volatile bool in_setup = 0;
 
-// Buffer for received data
-volatile uint8_t payload_buffer[10];                // Maximum payload size is 10 bytes
-volatile uint8_t payload_received = 0;              // Length of received payload
+// Unused — replaced by local buffers in waitForTelemetry() and initiatePairing()
+//volatile uint8_t payload_buffer[10];
+//volatile uint8_t payload_received = 0;
 
 // Pairing timeout in milliseconds
 const unsigned long PAIRING_TIMEOUT = 5000;
-const uint8_t MAX_ADDRESS_CONFLICTS = 5;            // Maximum number of address conflicts before giving up
+// TODO: Use when address conflict detection is implemented
+//const uint8_t MAX_ADDRESS_CONFLICTS = 5;            // Maximum number of address conflicts before giving up
 
 //Ring Buffer for Hall Sensors
 #define BUFFSZ 6
@@ -153,7 +159,7 @@ volatile uint16_t intbat_raw[BUFFSZ];
 
 volatile int filter_count = 0;
 volatile int bat_filter_count = 0;
-volatile int last_channel = -1;
+volatile int last_channel = 0;
 
 volatile int gear = 0;
 

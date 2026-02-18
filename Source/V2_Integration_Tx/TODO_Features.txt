@@ -1,0 +1,188 @@
+BREmote V2 TX - New Features To Implement
+==========================================
+Generated: 2026-02-10 | Current Version: V2.2.4
+
+
+=== HIGH PRIORITY ===
+
+[F01] Configurable Failsafe Deep-Sleep Timeout
+     Currently hardcoded at 300000ms (5 min) in V2_Integration_Tx.ino:86.
+     Add `failsafe_timeout_ms` to confStruct so users can set 30s-600s via web config.
+     Shorter defaults are safer for high-speed watercraft.
+     Files: BREmote_V2_Tx.h, V2_Integration_Tx.ino
+
+[F02] Complete Follow-Me Mode
+     Skeleton exists in Hall.ino:207 (`if(0)` placeholder for long-press-plus toggle).
+     Needs: enabler field in confStruct, GPS coordinate packing into radio packets,
+     Rx-side waypoint tracking, and a "follow-me active" display icon.
+     Files: BREmote_V2_Tx.h, Hall.ino, Radio.ino (Tx+Rx), GPS.ino (Rx)
+
+[F03] Rolling Sequence Numbers (Replay Protection)
+     Add a uint8_t sequence counter to the 6-byte control packet (requires protocol
+     version bump). Rx rejects packets with stale or duplicate sequence numbers.
+     Prevents radio replay attacks on the motor controller.
+     Files: Radio.ino (Tx+Rx), BREmote_V2_Tx.h, BREmote_V2_Rx.h
+
+[F04] Haptic/Motor Feedback for Events
+     P_MOT pin (GPIO 0) drives a vibration motor but is currently unused at runtime.
+     Add short buzzes for: gear change, lock/unlock, low battery warning, signal loss.
+     Configurable enable/disable in confStruct (`haptic_en`).
+     Files: BREmote_V2_Tx.h, Hall.ino, V2_Integration_Tx.ino, new Haptic.ino or System.ino
+
+[F05] Low Battery Warnings (Tx + Foil)
+     Tx internal battery: trigger warning when int_bat_volt drops below threshold
+     (e.g. 3.3V). Foil battery: trigger when telemetry.foil_bat < threshold (e.g. 15%).
+     Show blinking display + haptic buzz. Add `low_bat_tx_mv` and `low_bat_foil_pct`
+     to confStruct.
+     Files: BREmote_V2_Tx.h, Display.ino, V2_Integration_Tx.ino
+
+
+[F22] Improved Charger Error Handling (ECH)
+     Currently checkCharger() in System.ino:466-539 shows "ECH" and exits after 10
+     error samples, but the error is not categorized or recoverable. Improvements:
+     - Distinguish between: no charger detected, charge fault, charge complete,
+       and ADC out-of-range (current "else" catch-all at chgstat thresholds).
+     - Show specific error code on display (EC1=no charger, EC2=fault, EC3=ADC error).
+     - Allow retry: after ECH display, let user toggle to re-check charger state
+       instead of immediately exiting to normal boot.
+     - Log charger ADC values to serial for debugging (`?printCharger` command).
+     - Add `chg_stat_low`, `chg_stat_charging`, `chg_stat_full` ADC thresholds to
+       confStruct for hardware variant tolerance (currently hardcoded 1000/6000/11000).
+     Files: BREmote_V2_Tx.h, System.ino, Display.ino
+
+[F23] Additional Telemetry Value Display Modes
+     Currently the main display only shows speed (or "--" if unavailable).
+     Add a display cycle mode accessible via toggle gesture while unlocked+idle:
+     - Foil battery percentage (2 digits, e.g. "85")
+     - Foil motor temperature with degree symbol (e.g. "45" + celsius bargraph)
+     - Tx internal battery voltage (e.g. "39" for 3.9V)
+     - RSSI / link quality score (e.g. "L8" for link quality 8/10)
+     - Current gear displayed as "G3"
+     - Ride time in minutes (e.g. "12" for 12 minutes since unlock)
+     Auto-return to speed display after 3 seconds or on throttle input.
+     Add `display_cycle_en` to confStruct (0=always speed, 1=cycle enabled).
+     Files: BREmote_V2_Tx.h, V2_Integration_Tx.ino, Hall.ino, Display.ino
+
+[F24] Throttle Lock (Hold Current Throttle Position)
+     When enabled, user can lock the current throttle output at its present value:
+     - Activation: toggle-right quick tap while throttle > 10 and system unlocked.
+     - Display: show "TL" briefly on screen, then resume speed with a dot indicator.
+     - Throttle behavior while locked:
+       * Physical trigger released: output stays at locked value.
+       * Physical trigger pulled beyond locked value: output follows trigger (override).
+       * Physical trigger released again: returns to locked value.
+     - Deactivation: toggle-left tap, or throttle held at 0 for 2 seconds, or lock system.
+     - Safety: throttle lock automatically disengages on: signal loss (failsafe),
+       VESC error (remote_error != 0), or gear change.
+     - Add `thr_lock_en` to confStruct (0=disabled, 1=enabled).
+     - State variables: `volatile bool thr_locked`, `volatile uint8_t thr_lock_value`.
+     Files: BREmote_V2_Tx.h, Hall.ino, Radio.ino (sendData), Display.ino
+
+
+=== MEDIUM PRIORITY ===
+
+[F06] Cruise Control (Throttle Hold)
+     Double-tap toggle-right while throttle is active to lock current throttle value.
+     Any toggle input or throttle release cancels cruise. Display "CC" indicator.
+     Add `cruise_en` to confStruct.
+     Files: BREmote_V2_Tx.h, Hall.ino, Radio.ino, Display.ino
+
+[F07] Configurable Display Units
+     Currently foil_speed is shown raw from Rx. Add `display_unit` to confStruct:
+     0 = km/h (default), 1 = knots, 2 = mph. Apply conversion factor in display loop.
+     Files: BREmote_V2_Tx.h, V2_Integration_Tx.ino
+
+[F08] Speed Limiter
+     Add `speed_limit` to confStruct. When telemetry.foil_speed exceeds limit, Tx
+     progressively reduces throttle output regardless of trigger position.
+     Show blinking speed on display when limiter is active.
+     Files: BREmote_V2_Tx.h, Radio.ino (sendData), V2_Integration_Tx.ino
+
+[F09] Display Brightness Control
+     Currently hardcoded to 0x0F (max) after boot. Add `display_brightness` (0-15)
+     to confStruct. Optionally add auto-dim after N seconds idle to save power.
+     Could also tie to a serial command `?setBrightness:X`.
+     Files: BREmote_V2_Tx.h, Display.ino, System.ino
+
+[F10] Soft-Start Ramp on Unlock
+     After system unlock, gradually ramp the effective throttle multiplier from 0%
+     to 100% over a configurable period (`soft_start_ms`). Prevents sudden full-power
+     application when trigger is accidentally held during unlock.
+     Files: BREmote_V2_Tx.h, Hall.ino, Radio.ino (sendData)
+
+[F11] Auto-Lock on Idle
+     If throttle is at 0 for a configurable duration (`auto_lock_ms`, e.g. 60s),
+     automatically engage system_locked. Prevents accidental throttle if remote is
+     set down without manual lock. 0 = disabled.
+     Files: BREmote_V2_Tx.h, V2_Integration_Tx.ino, Hall.ino
+
+[F12] Session Statistics Display
+     Track per-session: ride time (seconds since unlock), max speed, average speed.
+     Toggle-right long-press in locked mode cycles through stats on display:
+     "ride time" -> "max speed" -> "avg speed" -> back to lock screen.
+     Files: V2_Integration_Tx.ino, Hall.ino, Display.ino
+
+
+=== LOW PRIORITY / NICE-TO-HAVE ===
+
+[F13] Tx Battery Percentage Display
+     Convert int_bat_volt to a percentage using a LiPo discharge curve lookup table
+     (3.0V=0%, 4.2V=100%). Show in boot animation and accessible via toggle in
+     locked state. Currently only raw voltage is shown at boot.
+     Files: V2_Integration_Tx.ino, Display.ino, System.ino
+
+[F14] CRC16 Upgrade
+     Replace CRC8 with CRC16-CCITT for better error detection on control packets.
+     Requires protocol version bump and coordination between Tx and Rx.
+     Doubles integrity check strength from 1/256 to 1/65536 collision probability.
+     Files: System.ino (Tx+Rx), Radio.ino (Tx+Rx)
+
+[F15] OTA Firmware Updates via WiFi
+     Add WiFi AP mode accessible via startup button combo. Serve a simple web page
+     that accepts .bin upload and flashes via ESP32 OTA partition. Show progress on
+     LED matrix display. Requires partition table change.
+     Files: New OTA.ino, V2_Integration_Tx.ino, BREmote_V2_Tx.h
+
+[F16] Ride Profiles (Preset Configurations)
+     Store 2-3 named profiles in SPIFFS (e.g., "beginner", "sport", "eco") with
+     different max_gears, thr_expo, speed_limit settings. Cycle through profiles
+     via startup button combo or menu. Add `active_profile` to confStruct.
+     Files: BREmote_V2_Tx.h, SPIFFS.ino, System.ino, Hall.ino
+
+[F17] Power-On Hours Counter
+     Increment a persistent counter in SPIFFS every minute of operation. Display
+     total hours via serial `?printHours` command. Useful for maintenance tracking.
+     Files: SPIFFS.ino, System.ino
+
+[F18] Pairing Rate Limiting
+     Add cooldown after 3 failed pairing attempts (e.g., 30s lockout). Prevents
+     brute-force address scanning. Show countdown on display during lockout.
+     Files: Radio.ino
+
+[F19] Temperature Display Mode
+     Quick toggle gesture (e.g., double-tap left while locked) to temporarily show
+     foil_temp in Celsius on the main number display for 3 seconds, then return
+     to speed or lock icon.
+     Files: V2_Integration_Tx.ino, Hall.ino, Display.ino
+
+[F20] Signal Quality Detail View
+     Serial command `?printLink` that shows: local RSSI, local SNR, remote link
+     quality, packet loss %, and computed link quality score in real-time.
+     Files: System.ino, Radio.ino
+
+[F21] printConfStruct Missing Fields
+     The ?conf command doesn't print: thr_expo, thr_expo1, steer_expo, steer_expo1,
+     gps_en, followme_mode, kalman_en, speed_src, tx_gps_stale_timeout_ms.
+     Add these to printConfStruct() in System.ino:541-589.
+     Files: System.ino
+
+
+=== NOTES ===
+
+- Features that modify confStruct (F01, F02, F04, F05, F06, F07, F08, F09, F10,
+  F11, F16, F22, F23, F24) require updating defaultConf, the web config tool, and
+  SW_VERSION bump.
+- Features that change the radio protocol (F03, F06, F08, F14) require coordinated
+  Tx+Rx firmware updates.
+- F15 (OTA) requires ESP32 partition table changes and is a significant effort.
+- All new confStruct fields should use uint16_t to maintain alignment (no packing).

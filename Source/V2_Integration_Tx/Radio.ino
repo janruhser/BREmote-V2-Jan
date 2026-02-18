@@ -34,7 +34,7 @@ void startupRadio()
   }
   else if (usrConf.radio_preset == 3)
   {
-    //Reserverd for other country
+    //Reserved for other country
     Serial.println("Error, unsupported HF setting");
     while(1) scroll4Digits(LET_E, LET_H, LET_F, LET_C, 200);
   }
@@ -80,13 +80,13 @@ bool initiatePairing()
   rxprintln("Initiating Pairing...");
   usrConf.paired = false;
   
-  // First check for address conflicts
-  if (0)//!checkAndAdjustAddress()) 
-  {
-      return false;  // Too many conflicts
-  }
+  // TODO: Implement address conflict detection during pairing
+  //if (!checkAndAdjustAddress())
+  //{
+  //    return false;  // Too many conflicts
+  //}
   
-  uint8_t pairingPacket[7];  // 0xAB + 3 bytes address + CRC
+  uint8_t pairingPacket[8];  // 0xAB + 3 bytes address + CRC (up to 8 bytes for confirmation)
   unsigned long startTime = millis();
   
   // Prepare pairing packet
@@ -122,7 +122,7 @@ bool initiatePairing()
         rxprintln("Received response");
         if (responseBuffer[0] == 0xBA && memcmp(responseBuffer + 1, usrConf.own_address, 3) == 0)
         {
-          rxprintln("Adress correct");
+          rxprintln("Address correct");
           // Verify CRC of received packet
           uint8_t receivedCRC = responseBuffer[7];
           uint8_t calculatedCRC = esp_crc8(responseBuffer, 7);
@@ -249,7 +249,7 @@ void sendData(void *parameter)
 
       sendArray[5] = esp_crc8(sendArray, 5);
 
-      rxprint("Sending: ")
+      rxprint("Sending: ");
       #ifdef DEBUG_RX
       printHexArray(sendArray, 6);
       #endif
@@ -258,8 +258,8 @@ void sendData(void *parameter)
       radio.startTransmit(sendArray, 6);
       num_sent_packets++;
       vTaskDelay(pdMS_TO_TICKS(10));
-      rfInterrupt = false;
       radio.implicitHeader(6);
+      rfInterrupt = false;
       radio.startReceive();
       //trigger waitForTelemetry
       xTaskNotifyGive(triggeredWaitForTelemetryHandle);

@@ -1,19 +1,28 @@
 //100us
 void calcFilter()
 {
-  volatile uint16_t thr_filter = 0;
-  volatile uint16_t tog_filter = 0;
-  volatile uint16_t intbat_filter = 0;
+  // Not volatile — these are local stack variables, not shared between tasks
+  uint32_t thr_sum = 0;
+  uint32_t tog_sum = 0;
+  uint32_t intbat_sum = 0;
 
   for(int i = 0; i < BUFFSZ; i++)
   {
-    thr_filter += thr_raw[i]/BUFFSZ;
-    tog_filter += tog_raw[i]/BUFFSZ;
-    intbat_filter += intbat_raw[i]/BUFFSZ;
+    thr_sum += thr_raw[i];
+    tog_sum += tog_raw[i];
+    intbat_sum += intbat_raw[i];
   }
 
-  //Map Throttle
-  if(usrConf.thr_idle < usrConf.thr_pull)
+  uint16_t thr_filter = thr_sum / BUFFSZ;
+  uint16_t tog_filter = tog_sum / BUFFSZ;
+  uint16_t intbat_filter = intbat_sum / BUFFSZ;
+
+  //Map Throttle (guard against div-by-zero from corrupted config)
+  if(usrConf.thr_idle == usrConf.thr_pull)
+  {
+    thr_scaled = 0;
+  }
+  else if(usrConf.thr_idle < usrConf.thr_pull)
   {
     uint16_t thr_const = constrain(thr_filter, usrConf.thr_idle, usrConf.thr_pull);
     thr_scaled = (uint8_t)((long)(thr_const - usrConf.thr_idle) * 255 / (usrConf.thr_pull - usrConf.thr_idle));
@@ -24,9 +33,11 @@ void calcFilter()
     thr_scaled = 255 - (uint8_t)((long)(thr_const - usrConf.thr_pull) * 255 / (usrConf.thr_idle - usrConf.thr_pull));
   }
 
-  //Deadzone mid-toggle
-  uint16_t deadbandLower = usrConf.tog_mid - (usrConf.tog_deadzone / 2);
-  uint16_t deadbandUpper = usrConf.tog_mid + (usrConf.tog_deadzone / 2);
+  //Deadzone mid-toggle (clamp to prevent uint16_t underflow with bad config)
+  uint16_t halfDead = usrConf.tog_deadzone / 2;
+  uint16_t deadbandLower = (halfDead < usrConf.tog_mid) ? usrConf.tog_mid - halfDead : 0;
+  uint32_t upperSum = (uint32_t)usrConf.tog_mid + halfDead;
+  uint16_t deadbandUpper = (upperSum <= 0xFFFF) ? (uint16_t)upperSum : 0xFFFF;
   
   if(tog_filter >= deadbandLower && tog_filter <= deadbandUpper)
   {
@@ -34,8 +45,12 @@ void calcFilter()
   }
   else
   {
-    //Map toggle
-    if(usrConf.tog_left < usrConf.tog_right)
+    //Map toggle (guard against div-by-zero from corrupted config)
+    if(usrConf.tog_left == usrConf.tog_right)
+    {
+      tog_scaled = 127;
+    }
+    else if(usrConf.tog_left < usrConf.tog_right)
     {
       uint16_t tog_const = constrain(tog_filter, usrConf.tog_left, usrConf.tog_right);
       if (tog_const < deadbandLower) 
@@ -160,6 +175,88 @@ bool ctminus()
   return tog_input == -1;
 }
 
+// direction: -1 = gear down (long press locks), +1 = gear up (long press follow-me)
+void handleGearToggle(int direction)
+{
+  bool (*isActive)() = (direction < 0) ? ctminus : ctplus;
+
+  in_menu = usrConf.menu_timeout+1;
+  delay(50);
+  unsigned long pushtime = millis();
+  bool change_once = 1;
+
+  while(isActive())
+  {
+    delay(10);
+    if(millis() - pushtime > usrConf.lock_waittime)
+    {
+      if(thr_scaled < 10)
+      {
+        if(direction < 0)
+        {
+          //Long press minus: lock system
+          if(!usrConf.no_lock)
+          {
+            system_locked = 1;
+            displayLock();
+          }
+        }
+        else
+        {
+          //Long press plus: follow-me toggle
+          if(0) //TODO: Add the enabler from usrConf later
+          {
+            if(followme_enabled)
+            {
+              followme_enabled = 0;
+              scroll4Digits(5,LET_T,LET_E,LET_E,150);
+            }
+            else
+            {
+              followme_enabled = 1;
+              scroll4Digits(LET_F,0,LET_L,LET_L,150);
+            }
+          }
+        }
+        in_menu = usrConf.menu_timeout;
+      }
+      while(isActive())
+      {
+        delay(100);
+      }
+      break;
+    }
+    if(millis() - pushtime > usrConf.gear_change_waittime)
+    {
+      if(change_once)
+      {
+        if(!usrConf.no_gear)
+        {
+          if(direction < 0 && gear > 0) gear--;
+          else if(direction > 0 && gear < usrConf.max_gears-1) gear++;
+          showNewGear();
+          change_once = 0;
+        }
+        in_menu = usrConf.menu_timeout;
+      }
+    }
+  }
+  if(!(millis() - pushtime > usrConf.lock_waittime))
+  {
+    while(isActive())
+    {
+      delay(10);
+    }
+    delay(50);
+    while(millis() - pushtime < usrConf.gear_display_time)
+    {
+      runMenu();
+      delay(10);
+    }
+    in_menu = usrConf.menu_timeout;
+  }
+}
+
 void runMenu()
 {
   if(remote_error == 0 || remote_error_blocked == 1)
@@ -172,7 +269,7 @@ void runMenu()
         delay(300);
         if(ctminus())
         {
-          //To unlock, promt user to touch throttle once
+          //To unlock, prompt user to touch throttle once
           advanceArrow();
           unsigned long timeout = millis();
           while(thr_scaled < 200 && (millis()-timeout < usrConf.trig_unlock_timeout ))
@@ -202,138 +299,26 @@ void runMenu()
     {
       if(ctminus())
       {
-        in_menu = usrConf.menu_timeout+1;
-        delay(50);
-        unsigned long pushtime = millis();
-        bool decrease_once = 1;
-        //minus decreases gear, holding locks system
-        while(ctminus())
-        {
-          delay(10);
-          if(millis() - pushtime > usrConf.lock_waittime)
-          {
-            if(thr_scaled < 10)
-            {
-              if(!usrConf.no_lock)
-              {
-                system_locked = 1;
-                displayLock();
-              }
-              in_menu = usrConf.menu_timeout;
-            }
-            while(ctminus())
-            {
-              delay(100);
-            }
-            break;
-          }
-          if(millis() - pushtime > usrConf.gear_change_waittime)
-          {
-            if(decrease_once)
-            {
-              if(!usrConf.no_gear)
-              {
-                if(gear > 0) gear --;
-                showNewGear();
-                decrease_once = 0;
-              }
-              in_menu = usrConf.menu_timeout;
-            }
-          }
-        }
-        if(!(millis() - pushtime > usrConf.lock_waittime))
-        {
-          while(ctminus())
-          {
-            delay(10);
-          }
-          delay(50);
-          while(millis() - pushtime < usrConf.gear_display_time)
-          {
-            runMenu();
-            delay(10);
-          }
-          in_menu = usrConf.menu_timeout;
-        }
+        handleGearToggle(-1);
       }
       else if(ctplus())
       {
-        in_menu = usrConf.menu_timeout+1;
-        delay(50);
-        unsigned long pushtime = millis();
-        bool increase_once = 1;
-        //Plus decreases gear, holding powers off
-        while(ctplus())
-        {
-          delay(10);
-          if(millis() - pushtime > usrConf.lock_waittime)
-          {
-            if(thr_scaled < 10)
-            {
-              if(0) //TODO: Add the enabler from usrConf later
-              {
-                if(followme_enabled)
-                {
-                  followme_enabled = 0;
-                  scroll4Digits(5,LET_T,LET_E,LET_E,150);
-                }
-                else
-                {
-                  followme_enabled = 1;
-                  scroll4Digits(LET_F,0,LET_L,LET_L,150);
-                }
-              }
-              in_menu = usrConf.menu_timeout;
-            }
-            while(ctminus())
-            {
-              delay(100);
-            }
-            break;
-          }
-          if(millis() - pushtime > usrConf.gear_change_waittime)
-          {
-            if(increase_once)
-            {
-              if(!usrConf.no_gear)
-              {
-                if(gear < usrConf.max_gears-1) gear ++;
-                showNewGear();
-                increase_once = 0;
-              }
-              in_menu = usrConf.menu_timeout;
-            }
-          }
-        }
-        if(!(millis() - pushtime > usrConf.lock_waittime))
-        {
-          while(ctplus())
-          {
-            delay(10);
-          }
-          delay(50);
-          while(millis() - pushtime < usrConf.gear_display_time)
-          {
-            runMenu();
-            delay(10);
-          }
-          in_menu = usrConf.menu_timeout;
-        }
+        handleGearToggle(1);
       }
     }
   }
   //Handle errors
   else
   {
-    if(ctminus() | ctplus())
+    if(ctminus() || ctplus())
     {
       in_menu = usrConf.menu_timeout+1;
       delay(500);
-      if(ctminus() | ctplus())
+      if(ctminus() || ctplus())
       {
         remote_error = 0;
         displayError(DASH);
-        while(ctminus() | ctplus()) delay(1);
+        while(ctminus() || ctplus()) delay(1);
         remote_error_blocked = 1;
         unsigned long pushtime = millis();
         while(millis() - pushtime < usrConf.err_delete_time)
@@ -346,6 +331,19 @@ void runMenu()
       }
     }
   }
+}
+
+void readFilteredInputs(uint16_t &thr_out, uint16_t &tog_out)
+{
+  uint32_t thr_sum = 0;
+  uint32_t tog_sum = 0;
+  for(int i = 0; i < BUFFSZ; i++)
+  {
+    thr_sum += thr_raw[i];
+    tog_sum += tog_raw[i];
+  }
+  thr_out = thr_sum / BUFFSZ;
+  tog_out = tog_sum / BUFFSZ;
 }
 
 void checkCal()
@@ -367,14 +365,8 @@ void checkCal()
     updateDisplay();
     delay(3000);
 
-    uint16_t thr_filter_raw = 0;
-    uint16_t tog_filter_raw = 0;
-
-    for(int i = 0; i < BUFFSZ; i++)
-    {
-      thr_filter_raw += thr_raw[i]/BUFFSZ;
-      tog_filter_raw += tog_raw[i]/BUFFSZ;
-    }
+    uint16_t thr_filter_raw, tog_filter_raw;
+    readFilteredInputs(thr_filter_raw, tog_filter_raw);
 
     usrConf.thr_idle = thr_filter_raw;
     usrConf.tog_mid =  tog_filter_raw;
@@ -386,12 +378,7 @@ void checkCal()
       delay(100);
     }
 
-    thr_filter_raw = tog_filter_raw = 0;
-    for(int i = 0; i < BUFFSZ; i++)
-    {
-      thr_filter_raw += thr_raw[i]/BUFFSZ;
-      tog_filter_raw += tog_raw[i]/BUFFSZ;
-    }
+    readFilteredInputs(thr_filter_raw, tog_filter_raw);
 
     usrConf.thr_pull = thr_filter_raw;
 
@@ -400,12 +387,7 @@ void checkCal()
     updateDisplay();
     delay(3000);
 
-    thr_filter_raw = tog_filter_raw = 0;
-    for(int i = 0; i < BUFFSZ; i++)
-    {
-      thr_filter_raw += thr_raw[i]/BUFFSZ;
-      tog_filter_raw += tog_raw[i]/BUFFSZ;
-    }
+    readFilteredInputs(thr_filter_raw, tog_filter_raw);
 
     usrConf.tog_left = tog_filter_raw;
 
@@ -414,12 +396,7 @@ void checkCal()
     updateDisplay();
     delay(3000);
 
-    thr_filter_raw = tog_filter_raw = 0;
-    for(int i = 0; i < BUFFSZ; i++)
-    {
-      thr_filter_raw += thr_raw[i]/BUFFSZ;
-      tog_filter_raw += tog_raw[i]/BUFFSZ;
-    }
+    readFilteredInputs(thr_filter_raw, tog_filter_raw);
 
     usrConf.tog_right = tog_filter_raw;
 

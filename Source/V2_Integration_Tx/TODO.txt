@@ -1,0 +1,8 @@
+BREmote V2 TX - Code Review TODO
+=================================
+
+MISSING
+-------
+[#23] printConfStruct missing newer config fields — System.ino:539-589
+      ?conf doesn't print thr_expo, thr_expo1, steer_expo, steer_expo1,
+      gps_en, followme_mode, kalman_en, speed_src, or tx_gps_stale_timeout_ms.

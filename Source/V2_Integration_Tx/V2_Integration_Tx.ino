@@ -2,7 +2,7 @@
 
 SX1262 radio = new Module(P_LORA_NSS, P_LORA_DIO, P_LORA_RST, P_LORA_BUSY);
 Adafruit_ADS1115 ads;
-Ticker ticksrc;
+//Ticker ticksrc; // Unused — replaced by FreeRTOS tasks
 
 void setup()
 {
@@ -96,9 +96,9 @@ void loop()
     }
     else
     {
-      if(telemetry.foil_speed != 0xFF)
+      if(telemetry.foil_temp != 0xFF)
       {
-        displayDigits(telemetry.foil_speed/10,telemetry.foil_speed-10*(telemetry.foil_speed/10));
+        displayDigits(telemetry.foil_temp/10,telemetry.foil_temp-10*(telemetry.foil_temp/10));
       }
       else
       {
@@ -109,7 +109,8 @@ void loop()
   }
   else
   {
-    displayDigits(LET_E, remote_error);
+    displayDigits(LET_E, remote_error < 10 ? remote_error : DASH);
+    updateDisplay();
   }
   
   delay(110);

@@ -7,7 +7,6 @@ void startupDisplay()
     while(1) delay(100);
   }
 
-  clearDigitBuffer();
   clearDisplayBuffer();
   clearDisplay();
   initDisplay();
@@ -20,13 +19,14 @@ bool beginDisplay()
   return (0 == Wire.endTransmission());
 }
 
-void clearDigitBuffer()
-{
-  for(int i = 0; i < 6; i++)
-  {
-    digitBuffer[i] = 0x00;
-  }
-}
+// Unused — global digitBuffer was shadowed by locals everywhere
+//void clearDigitBuffer()
+//{
+//  for(int i = 0; i < 6; i++)
+//  {
+//    digitBuffer[i] = 0x00;
+//  }
+//}
 
 void displayDigits(uint8_t dig1, uint8_t dig2)
 {
@@ -56,7 +56,7 @@ void displayDigits(uint8_t dig1, uint8_t dig2)
   {
     for(int i = 0; i < 7; i++)
     {
-      displayBuffer[j] |= ((digitBuffer[i]>>5-j)&0x01)<<i;
+      displayBuffer[j] |= ((digitBuffer[i]>>(5-j))&0x01)<<i;
     }
   }
 }
@@ -93,9 +93,9 @@ void updateDisplay()
   //but the connection is not 1:1
   //See the row_mapper[] and col_mapper[] arrays
 
-  uint8_t sendBuffer[15];
+  uint8_t sendBuffer[17];
 
-  for(int i=0; i < 15; i++)
+  for(int i=0; i < 17; i++)
   {
     sendBuffer[i] = 0x00;
   }
@@ -217,7 +217,7 @@ void scroll3Digits(uint8_t dig1, uint8_t dig2, uint8_t dig3, int del)
     {
       for(int i = 0; i < 7; i++)
       {
-        displayBuffer[j] |= ((digitBuffer[(i+k)%14]>>5-j)&0x01)<<i;
+        displayBuffer[j] |= ((digitBuffer[(i+k)%14]>>(5-j))&0x01)<<i;
       }
     }
     updateDisplay();
@@ -265,7 +265,7 @@ void scroll4Digits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, int d
     {
       for(int i = 0; i < 7; i++)
       {
-        displayBuffer[j] |= ((digitBuffer[(i+k)%18]>>5-j)&0x01)<<i;
+        displayBuffer[j] |= ((digitBuffer[(i+k)%18]>>(5-j))&0x01)<<i;
       }
     }
     updateDisplay();
@@ -330,22 +330,22 @@ void advanceChargeAnimation()
     displayBuffer[2] = 0x21;
     displayBuffer[3] = 0x21;
   }
-  if(chargeAnimationPos == 1)
+  else if(chargeAnimationPos == 1)
   {
     displayBuffer[2] = 0x23;
     displayBuffer[3] = 0x23;
   }
-  if(chargeAnimationPos == 2)
+  else if(chargeAnimationPos == 2)
   {
     displayBuffer[2] = 0x27;
     displayBuffer[3] = 0x27;
   }
-  if(chargeAnimationPos == 3)
+  else if(chargeAnimationPos == 3)
   {
     displayBuffer[2] = 0x2F;
     displayBuffer[3] = 0x2F;
   }
-  if(chargeAnimationPos == 4)
+  else
   {
     displayBuffer[2] = 0x3F;
     displayBuffer[3] = 0x3F;
