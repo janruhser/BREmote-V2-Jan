@@ -1,6 +1,8 @@
 *.s#*
 *.b#*
 *.br*
+*.md
+*.txt
 /Electronics/openfoil
 /Releases
 /Inofficial
