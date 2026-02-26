@@ -71,10 +71,11 @@ void setup()
 
   exitSetup();
   in_setup = false;
-  setHallActivityEnabled(false);
-  setRadioActivityEnabled(false);
-  setDisplayActivityEnabled(false);
-  if(!system_locked)
+  if(system_locked)
+  {
+    setRadioActivityEnabled(false);
+  }
+  else
   {
     webCfgNotifyTxUnlocked();
   }
@@ -102,30 +103,7 @@ void loop()
     deepSleep();
   }
 
-  if(remote_error == 0)
-  {
-    if(system_locked)
-    {
-      displayLock();
-    }
-    else
-    {
-      if(telemetry.foil_temp != 0xFF)
-      {
-        displayDigits(telemetry.foil_temp/10,telemetry.foil_temp-10*(telemetry.foil_temp/10));
-      }
-      else
-      {
-        displayDigits(DASH, DASH);
-      }
-      updateDisplay();
-    }
-  }
-  else
-  {
-    displayDigits(LET_E, remote_error < 10 ? remote_error : DASH);
-    updateDisplay();
-  }
+  renderOperationalDisplay();
   
   delay(110);
   

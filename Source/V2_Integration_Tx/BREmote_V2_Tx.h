@@ -211,6 +211,9 @@ bool forceUpdateWebUiInSPIFFS();
 String getInstalledWebUiVersion();
 String getTargetWebUiVersion();
 
+// Forward declaration for Arduino-generated prototypes in ConfigService.ino.
+struct CfgFieldSpec;
+
 bool cfgGetAllJson(String &out);
 bool cfgGetValueByKey(const String& key, String &outValue, String &err);
 bool cfgSetValueByKey(const String& key, const String& value, String &err, bool &radioReinitRequired);

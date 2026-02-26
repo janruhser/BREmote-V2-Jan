@@ -220,6 +220,39 @@ void showNewGear()
   updateDisplay();
 }
 
+static void displayShowTwoDigitOrDash(uint8_t value)
+{
+  if(value != 0xFF)
+  {
+    displayDigits(value/10, value-10*(value/10));
+  }
+  else
+  {
+    displayDigits(DASH, DASH);
+  }
+}
+
+void renderOperationalDisplay()
+{
+  if(remote_error == 0)
+  {
+    if(system_locked)
+    {
+      displayLock();
+    }
+    else
+    {
+      displayShowTwoDigitOrDash(telemetry.foil_temp);
+      updateDisplay();
+    }
+  }
+  else
+  {
+    displayDigits(LET_E, remote_error < 10 ? remote_error : DASH);
+    updateDisplay();
+  }
+}
+
 void displayError(int err)
 {
   displayDigits(LET_E, err);

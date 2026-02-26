@@ -406,6 +406,20 @@ void checkSerial()
           setHallActivityEnabled(true);
           Serial.println("Hall activity enabled.");
         }
+        else if(commandLower == "?status")
+        {
+          Serial.println("--- Status ---");
+          Serial.print("Hall:    "); Serial.println(isHallActivityEnabled() ? "ON" : "OFF");
+          Serial.print("Radio:   "); Serial.println(isRadioActivityEnabled() ? "ON" : "OFF");
+          Serial.print("Display: "); Serial.println(isDisplayActivityEnabled() ? "ON" : "OFF");
+          Serial.print("WiFi AP: "); Serial.println(web_cfg_service_enabled ? "ON" : "OFF");
+          Serial.print("Locked:  "); Serial.println(system_locked ? "YES" : "NO");
+          Serial.print("Paired:  "); Serial.println(usrConf.paired ? "YES" : "NO");
+          Serial.print("Gear:    "); Serial.print(gear); Serial.print("/"); Serial.println(usrConf.max_gears);
+          Serial.print("Error:   "); Serial.println(remote_error);
+          Serial.print("Last pkt (ms ago): "); Serial.println(millis() - last_packet);
+          Serial.println("--------------");
+        }
         else if(commandLower == "?allon")
         {
           setHallActivityEnabled(true);
@@ -452,6 +466,7 @@ void checkSerial()
           Serial.println("?hallOn - Enable hall sampling activity");
           Serial.println("?allOff - Disable hall/radio/display activity");
           Serial.println("?allOn - Enable hall/radio/display activity");
+          Serial.println("?status - Print current subsystem status");
         }
         else {
           Serial.println("Unknown command. Type '?' for help.");

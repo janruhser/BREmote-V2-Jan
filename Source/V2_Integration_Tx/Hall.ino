@@ -279,6 +279,8 @@ void runMenu()
           }
           if(millis()-timeout < usrConf.trig_unlock_timeout)
           {
+            setHallActivityEnabled(true);
+            setRadioActivityEnabled(true);
             unlockAnimation();
             delay(500);
             while(thr_scaled > 5)
