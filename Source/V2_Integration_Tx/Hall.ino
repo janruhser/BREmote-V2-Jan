@@ -287,6 +287,7 @@ void runMenu()
             }
             delay(1000);
             system_locked = 0;
+            webCfgNotifyTxUnlocked();
             if(usrConf.startgear >= usrConf.max_gears) usrConf.startgear = usrConf.max_gears-1;
             gear = usrConf.startgear;
             in_menu = usrConf.menu_timeout;

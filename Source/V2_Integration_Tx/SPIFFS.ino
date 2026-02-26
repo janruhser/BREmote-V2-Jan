@@ -1,3 +1,10 @@
+#include "WebUiEmbedded.h"
+
+static const char* WEB_UI_INDEX_PATH = "/index.html";
+static const char* WEB_UI_INDEX_TMP_PATH = "/index.new";
+static const char* WEB_UI_VERSION_PATH = "/ui.version";
+static const char* WEB_UI_VERSION = "2026-02-26.1";
+
 void initSPIFFS()
 {
   if(!SPIFFS.begin(false)) 
@@ -140,4 +147,121 @@ void deleteConfFromSPIFFS() {
     } else {
         Serial.println("Failed to delete file");
     }
+}
+
+static uint32_t webUiFnv1a(const uint8_t* data, size_t len)
+{
+  uint32_t hash = 2166136261UL;
+  for (size_t i = 0; i < len; i++)
+  {
+    hash ^= data[i];
+    hash *= 16777619UL;
+  }
+  return hash;
+}
+
+static uint32_t webUiFileFnv1a(File &file)
+{
+  uint8_t buf[256];
+  uint32_t hash = 2166136261UL;
+  while (file.available())
+  {
+    const size_t rd = file.read(buf, sizeof(buf));
+    for (size_t i = 0; i < rd; i++)
+    {
+      hash ^= buf[i];
+      hash *= 16777619UL;
+    }
+  }
+  return hash;
+}
+
+static bool webUiWriteVersionFile()
+{
+  File vf = SPIFFS.open(WEB_UI_VERSION_PATH, FILE_WRITE);
+  if (!vf) return false;
+  const size_t written = vf.print(WEB_UI_VERSION);
+  vf.close();
+  return written == String(WEB_UI_VERSION).length();
+}
+
+static bool webUiReadVersionFile(String &outVersion)
+{
+  if (!SPIFFS.exists(WEB_UI_VERSION_PATH)) return false;
+  File vf = SPIFFS.open(WEB_UI_VERSION_PATH, FILE_READ);
+  if (!vf) return false;
+  outVersion = vf.readString();
+  vf.close();
+  outVersion.trim();
+  return outVersion.length() > 0;
+}
+
+static bool webUiInstallEmbedded()
+{
+  SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+  File tmp = SPIFFS.open(WEB_UI_INDEX_TMP_PATH, FILE_WRITE);
+  if (!tmp) return false;
+  const size_t written = tmp.print(WEB_UI_INDEX_HTML);
+  tmp.close();
+  if (written != WEB_UI_INDEX_HTML_LEN)
+  {
+    SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+    return false;
+  }
+
+  File verify = SPIFFS.open(WEB_UI_INDEX_TMP_PATH, FILE_READ);
+  if (!verify)
+  {
+    SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+    return false;
+  }
+  const size_t fileSize = verify.size();
+  const uint32_t fileHash = webUiFileFnv1a(verify);
+  verify.close();
+  const uint32_t expectedHash = webUiFnv1a((const uint8_t*)WEB_UI_INDEX_HTML, WEB_UI_INDEX_HTML_LEN);
+  if (fileSize != WEB_UI_INDEX_HTML_LEN || fileHash != expectedHash)
+  {
+    SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+    return false;
+  }
+
+  SPIFFS.remove(WEB_UI_INDEX_PATH);
+  if (!SPIFFS.rename(WEB_UI_INDEX_TMP_PATH, WEB_UI_INDEX_PATH))
+  {
+    SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+    return false;
+  }
+  return webUiWriteVersionFile();
+}
+
+String getTargetWebUiVersion()
+{
+  return String(WEB_UI_VERSION);
+}
+
+String getInstalledWebUiVersion()
+{
+  String installed;
+  if (!webUiReadVersionFile(installed)) return "none";
+  return installed;
+}
+
+bool forceUpdateWebUiInSPIFFS()
+{
+  return webUiInstallEmbedded();
+}
+
+bool ensureWebUiInSPIFFS()
+{
+  bool needsInstall = !SPIFFS.exists(WEB_UI_INDEX_PATH);
+  String installedVersion;
+  if (!needsInstall)
+  {
+    if (!webUiReadVersionFile(installedVersion) || installedVersion != WEB_UI_VERSION)
+    {
+      needsInstall = true;
+    }
+  }
+  if (!needsInstall) return true;
+  return webUiInstallEmbedded();
 }

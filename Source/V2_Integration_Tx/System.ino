@@ -23,15 +23,15 @@ void exitSetup()
 
 void deepSleep()
 {
+  if(!isDisplayActivityEnabled())
+  {
+    setDisplayActivityEnabled(true);
+  }
   displayDigits(LET_X, LET_X);
   updateDisplay();
-  setBrightness(0);
-  Wire.beginTransmission(DISPLAY_ADDRESS);
-  //On, blink 2Hz
-  Wire.write(0x83);
-  Wire.endTransmission();
+  setBrightness(0x00);
   Serial.println("Going to sleep now");
-  radio.sleep();
+  setRadioActivityEnabled(false);
   Serial.flush();
   esp_deep_sleep_start();
 }
@@ -244,50 +244,183 @@ void checkSerial()
 
       // Trim leading and trailing spaces
       command.trim();
+      String commandLower = command;
+      commandLower.toLowerCase();
       
       // Process the command
-      if (command.startsWith("?")) {
-        if (command == "?conf") {
+      if (commandLower.startsWith("?")) {
+        if (commandLower == "?conf") {
           serPrintConf();  // Call function for ?conf
         } 
-        else if (command.startsWith("?setConf:")) {
-          String data = command.substring(9);  // Extract everything after "?setConf:"
+        else if (commandLower.startsWith("?setconf")) {
+          String data = command.substring(command.indexOf(":") + 1);
           serSetConf(data);
         } 
-        else if (command == "?clearSPIFFS") {
+        else if (commandLower == "?clearspiffs") {
           serClearConf();  // Call function for ?clearSPIFFS
         }
-        else if (command == "?applyConf") {
+        else if (commandLower == "?applyconf") {
           serApplyConf();
         }
-        else if (command == "?reboot")
+        else if (commandLower == "?reboot")
         {
           Serial.println("Rebooting now...");
           delay(1000);
           ESP.restart();
         }
-        else if (command == "?exitChg")
+        else if (commandLower == "?exitchg")
         {
           Serial.println(" Exit by user");
           exitChargeScreen = 1;
         }
-        else if(command == "?printRSSI")
+        else if(commandLower == "?printrssi")
         {
           serPrintRSSI();
         }
-        else if(command == "?printInputs")
+        else if(commandLower == "?printinputs")
         {
           serPrintInputs();
         }
-        else if(command == "?printTasks")
+        else if(commandLower == "?printtasks")
         {
           serPrintTasks();
         }
-        else if(command == "?printPackets")
+        else if(commandLower == "?printpackets")
         {
           serPrintPackets();
         }
-        else if (command == "?") {
+        else if(commandLower == "?state")
+        {
+          Serial.println(webCfgGetStateLine());
+        }
+        else if(commandLower == "?err")
+        {
+          Serial.println(webCfgGetLastError());
+        }
+        else if(commandLower == "?webdbg")
+        {
+          Serial.print("webdbg=");
+          Serial.println(webCfgGetDebugModeName());
+        }
+        else if(commandLower.startsWith("?webdbg "))
+        {
+          String mode = command.substring(8);
+          mode.trim();
+          if(webCfgSetDebugMode(mode))
+          {
+            Serial.print("webdbg=");
+            Serial.println(webCfgGetDebugModeName());
+          }
+          else
+          {
+            Serial.println("ERR_WEBDBG_MODE");
+          }
+        }
+        else if(commandLower == "?wifips")
+        {
+          Serial.print("wifips_ms=");
+          Serial.println(webCfgGetStartupTimeoutMs());
+        }
+        else if(commandLower.startsWith("?wifips "))
+        {
+          String value = command.substring(8);
+          value.trim();
+          if(value.equalsIgnoreCase("off"))
+          {
+            if(webCfgSetStartupTimeoutMs(0)) Serial.println("wifips_ms=0");
+            else Serial.println("ERR_WIFIPS_VALUE");
+          }
+          else
+          {
+            long ms = value.toInt();
+            bool isDigitsOnly = value.length() > 0;
+            for(size_t i = 0; i < value.length(); i++)
+            {
+              if(!isDigit((unsigned char)value[i])) { isDigitsOnly = false; break; }
+            }
+            if(!isDigitsOnly || ms < 0 || !webCfgSetStartupTimeoutMs((uint32_t)ms)) Serial.println("ERR_WIFIPS_VALUE");
+            else { Serial.print("wifips_ms="); Serial.println(ms); }
+          }
+        }
+        else if(commandLower == "?txunlock")
+        {
+          webCfgNotifyTxUnlocked();
+          Serial.println("TX unlock notified: AP will stop.");
+        }
+        else if(commandLower == "?uiversion")
+        {
+          Serial.print("ui_target=");
+          Serial.println(getTargetWebUiVersion());
+          Serial.print("ui_installed=");
+          Serial.println(getInstalledWebUiVersion());
+        }
+        else if(commandLower == "?uiupdate")
+        {
+          if(forceUpdateWebUiInSPIFFS())
+          {
+            Serial.print("UI updated to ");
+            Serial.println(getTargetWebUiVersion());
+          }
+          else
+          {
+            Serial.println("ERR_UI_UPDATE");
+          }
+        }
+        else if(commandLower == "?wifion")
+        {
+          webCfgEnableService();
+          Serial.println("WiFi/AP config service enabled.");
+        }
+        else if(commandLower == "?wifioff")
+        {
+          webCfgDisableService();
+          Serial.println("WiFi/AP config service disabled.");
+        }
+        else if(commandLower == "?displayoff")
+        {
+          setDisplayActivityEnabled(false);
+          Serial.println("Display activity disabled.");
+        }
+        else if(commandLower == "?displayon")
+        {
+          setDisplayActivityEnabled(true);
+          Serial.println("Display activity enabled.");
+        }
+        else if(commandLower == "?radiooff")
+        {
+          setRadioActivityEnabled(false);
+          Serial.println("Radio activity disabled.");
+        }
+        else if(commandLower == "?radioon")
+        {
+          setRadioActivityEnabled(true);
+          Serial.println("Radio activity enabled.");
+        }
+        else if(commandLower == "?halloff")
+        {
+          setHallActivityEnabled(false);
+          Serial.println("Hall activity disabled.");
+        }
+        else if(commandLower == "?hallon")
+        {
+          setHallActivityEnabled(true);
+          Serial.println("Hall activity enabled.");
+        }
+        else if(commandLower == "?allon")
+        {
+          setHallActivityEnabled(true);
+          setRadioActivityEnabled(true);
+          setDisplayActivityEnabled(true);
+          Serial.println("All activity gateways enabled.");
+        }
+        else if(commandLower == "?alloff")
+        {
+          setDisplayActivityEnabled(false);
+          setRadioActivityEnabled(false);
+          setHallActivityEnabled(false);
+          Serial.println("All activity gateways disabled.");
+        }
+        else if (commandLower == "?") {
           // List all possible inputs
           Serial.println("Possible commands:");
           Serial.println("?conf - print info, usrConf");
@@ -300,6 +433,25 @@ void checkSerial()
           Serial.println("?printInputs - Print raw input values until sent 'quit'");
           Serial.println("?printTasks - Print task stack usage until sent 'quit'");
           Serial.println("?printPackets - Print current state of tx,rx packets and relation");
+          Serial.println("?state - print web config state/counters");
+          Serial.println("?err - print last web config error");
+          Serial.println("?webdbg - print web debug mode");
+          Serial.println("?webdbg some|full|off - set web debug mode");
+          Serial.println("?wifips - print startup no-client timeout in ms");
+          Serial.println("?wifips <ms|off> - set timeout (off=0)");
+          Serial.println("?txunlock - notify TX unlock and stop AP");
+          Serial.println("?uiVersion - print target and installed UI version");
+          Serial.println("?uiUpdate - force embedded UI update to SPIFFS");
+          Serial.println("?wifiOn - start WiFi/AP config service");
+          Serial.println("?wifiOff - stop WiFi/AP config service");
+          Serial.println("?displayOff - Disable display activity");
+          Serial.println("?displayOn - Enable display activity");
+          Serial.println("?radioOff - Disable radio activity");
+          Serial.println("?radioOn - Enable radio activity");
+          Serial.println("?hallOff - Disable hall sampling activity");
+          Serial.println("?hallOn - Enable hall sampling activity");
+          Serial.println("?allOff - Disable hall/radio/display activity");
+          Serial.println("?allOn - Enable hall/radio/display activity");
         }
         else {
           Serial.println("Unknown command. Type '?' for help.");
@@ -408,7 +560,11 @@ void serPrintRSSI()
   {
     if(checkSerialQuit()) break;
 
-    if(millis()-last_packet < 1000)
+    if(!isRadioActivityEnabled())
+    {
+      Serial.println("Radio activity is disabled.");
+    }
+    else if(millis()-last_packet < 1000)
     {
       Serial.print("RSSI: ");
       Serial.print(radio.getRSSI());
@@ -430,11 +586,24 @@ void serPrintInputs()
   while (true)
   {
     if(checkSerialQuit()) break;
+    if(in_menu > 0) in_menu--;
 
     Serial.print("Throttle: ");
     Serial.print(thr_scaled);
     Serial.print(", Steering: ");
-    Serial.println(steer_scaled);
+    Serial.print(steer_scaled);
+    Serial.print(", Toggle: ");
+    Serial.print(tog_scaled);
+    Serial.print(", ToggleInput: ");
+    Serial.print(tog_input);
+    Serial.print(", Locked: ");
+    Serial.print(system_locked ? 1 : 0);
+    Serial.print(", InMenu: ");
+    Serial.print(in_menu);
+    Serial.print(", SteerEn: ");
+    Serial.print(usrConf.steer_enabled);
+    Serial.print(", HallEn: ");
+    Serial.println(isHallActivityEnabled() ? 1 : 0);
     delay(50);
   }
 }
@@ -470,12 +639,21 @@ void checkCharger()
 
   while(!exitChargeScreen)
   {
+    webCfgLoop();
     ads.startADCReading(MUX_BY_CHANNEL[P_CHGSTAT],false);
-    while(!ads.conversionComplete()) delay(1);
+    while(!ads.conversionComplete())
+    {
+      webCfgLoop();
+      delay(1);
+    }
     uint16_t chgstat = ads.getLastConversionResults();
 
     ads.startADCReading(MUX_BY_CHANNEL[P_UBAT_MEAS],false);
-    while(!ads.conversionComplete()) delay(1);
+    while(!ads.conversionComplete())
+    {
+      webCfgLoop();
+      delay(1);
+    }
     uint16_t bat_volt = ads.getLastConversionResults();
     uint16_t c_bat_volt = (uint16_t)((float)bat_volt * usrConf.ubat_cal * 100.0);
 
@@ -495,6 +673,7 @@ void checkCharger()
       displayHorzBargraph(7,chglevel);
       updateDisplay();
       checkSerial();
+      webCfgLoop();
       delay(200);
     }
     else if(chgstat > 10000 && chgstat < 18000)
@@ -507,6 +686,7 @@ void checkCharger()
       displayHorzBargraph(7,10);
       updateDisplay();
       checkSerial();
+      webCfgLoop();
       delay(200);
     }
     else
@@ -516,6 +696,7 @@ void checkCharger()
       Serial.println(chg_err_cnt);
       Serial.print("Stat: ");
       Serial.println(chgstat);
+      webCfgLoop();
       delay(10);
       if(chg_err_cnt > 10)
       {

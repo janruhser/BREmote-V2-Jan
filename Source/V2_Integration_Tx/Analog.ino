@@ -10,6 +10,30 @@ void startupADS()
   Serial.println(" Done");
 }
 
+void setHallActivityEnabled(bool enabled)
+{
+  hall_activity_enabled = enabled;
+
+  if(enabled)
+  {
+    filter_count = 0;
+    bat_filter_count = 0;
+    last_channel = 0;
+    ads.startADCReading(MUX_BY_CHANNEL[last_channel],false);
+    return;
+  }
+
+  thr_scaled = 0;
+  tog_scaled = 127;
+  steer_scaled = 127;
+  tog_input = 0;
+}
+
+bool isHallActivityEnabled()
+{
+  return hall_activity_enabled;
+}
+
 void measBufCalc(void *parameter) 
 {
   TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -17,8 +41,18 @@ void measBufCalc(void *parameter)
 
   while (1) 
   {
-    measureAndBuffer();
-    calcFilter();
+    if(isHallActivityEnabled())
+    {
+      measureAndBuffer();
+      calcFilter();
+    }
+    else
+    {
+      thr_scaled = 0;
+      tog_scaled = 127;
+      steer_scaled = 127;
+      tog_input = 0;
+    }
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
 }

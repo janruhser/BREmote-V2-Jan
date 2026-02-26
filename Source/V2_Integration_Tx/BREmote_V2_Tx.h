@@ -14,6 +14,8 @@
 #include "FS.h"
 #include "SPIFFS.h"
 #include "mbedtls/base64.h"
+#include <WiFi.h>
+#include <WebServer.h>
 
 #define SW_VERSION 2
 const char* CONF_FILE_PATH = "/data.txt";
@@ -189,6 +191,42 @@ volatile bool exitChargeScreen = 0;
 volatile bool followme_enabled = false;
 
 volatile bool serialOff = false;
+volatile bool display_activity_enabled = true;
+volatile bool radio_activity_enabled = true;
+volatile bool radio_driver_ready = false;
+volatile bool hall_activity_enabled = true;
+
+volatile bool web_cfg_service_enabled = false;
+volatile bool web_cfg_pending_save = false;
+volatile bool web_cfg_radio_reinit_required = false;
+volatile uint32_t web_cfg_req_total = 0;
+volatile uint32_t web_cfg_req_ok = 0;
+volatile uint32_t web_cfg_req_err = 0;
+volatile uint8_t web_cfg_debug_mode = 1; // 0=off, 1=some, 2=full
+volatile uint32_t web_cfg_ap_startup_timeout_ms = 120000; // 0 disables timeout
+String web_cfg_last_err = "";
+
+bool ensureWebUiInSPIFFS();
+bool forceUpdateWebUiInSPIFFS();
+String getInstalledWebUiVersion();
+String getTargetWebUiVersion();
+
+bool cfgGetAllJson(String &out);
+bool cfgGetValueByKey(const String& key, String &outValue, String &err);
+bool cfgSetValueByKey(const String& key, const String& value, String &err, bool &radioReinitRequired);
+bool cfgSetBatch(const String& payload, String &err, bool &radioReinitRequired);
+
+void webCfgInit();
+void webCfgLoop();
+String webCfgGetStateLine();
+String webCfgGetLastError();
+String webCfgGetDebugModeName();
+bool webCfgSetDebugMode(const String& modeName);
+uint32_t webCfgGetStartupTimeoutMs();
+bool webCfgSetStartupTimeoutMs(uint32_t timeoutMs);
+void webCfgNotifyTxUnlocked();
+void webCfgEnableService();
+void webCfgDisableService();
 
 /* 
 ** Defines

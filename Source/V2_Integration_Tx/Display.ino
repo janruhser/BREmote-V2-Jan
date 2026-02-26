@@ -1,3 +1,43 @@
+static void clearDisplayRaw()
+{
+  Wire.beginTransmission(DISPLAY_ADDRESS);
+  uint8_t buffer[17];
+  for (uint8_t i = 0; i < 17; i++) {
+    buffer[i] = 0x00;
+  }
+  Wire.write(buffer,17);
+  Wire.endTransmission();
+}
+
+void setDisplayActivityEnabled(bool enabled)
+{
+  if (enabled == display_activity_enabled) return;
+
+  if (enabled)
+  {
+    if (!beginDisplay())
+    {
+      display_activity_enabled = false;
+      return;
+    }
+    display_activity_enabled = true;
+    initDisplay();
+    updateDisplay();
+    return;
+  }
+
+  clearDisplayRaw();
+  Wire.beginTransmission(DISPLAY_ADDRESS);
+  Wire.write(0x80); // display off
+  Wire.endTransmission();
+  display_activity_enabled = false;
+}
+
+bool isDisplayActivityEnabled()
+{
+  return display_activity_enabled;
+}
+
 void startupDisplay()
 {
   Serial.print("Starting Display...");
@@ -30,6 +70,9 @@ bool beginDisplay()
 
 void displayDigits(uint8_t dig1, uint8_t dig2)
 {
+  if (dig1 > 29) dig1 = BLANK;
+  if (dig2 > 29) dig2 = BLANK;
+
   //Delete whole number field
   for(int i = 1; i < 7; i++)
   {
@@ -63,6 +106,8 @@ void displayDigits(uint8_t dig1, uint8_t dig2)
 
 void initDisplay()
 {
+  if(!isDisplayActivityEnabled()) return;
+
   Wire.beginTransmission(DISPLAY_ADDRESS);
   //System Oscillator on
   Wire.write(0x21);
@@ -78,6 +123,8 @@ void initDisplay()
 
 void setBrightness(uint8_t level)
 {
+  if(!isDisplayActivityEnabled()) return;
+
   //Set brightness x00..x0F
   if(level > 0x0F) level = 0x0F;
   Wire.beginTransmission(DISPLAY_ADDRESS);
@@ -88,6 +135,8 @@ void setBrightness(uint8_t level)
 
 void updateDisplay()
 {
+  if(!isDisplayActivityEnabled()) return;
+
   //This is where the mapping takes place
   //displayBuffer keeps the desired matrix config,
   //but the connection is not 1:1
@@ -129,13 +178,8 @@ void clearDisplayBuffer()
 
 void clearDisplay()
 {  
-  Wire.beginTransmission(DISPLAY_ADDRESS);
-  uint8_t buffer[17];
-  for (uint8_t i = 0; i < 17; i++) {
-    buffer[i] = 0x00;
-  }
-  Wire.write(buffer,17);
-  Wire.endTransmission();  
+  if(!isDisplayActivityEnabled()) return;
+  clearDisplayRaw();
 }
 
 void displayVertBargraph(uint8_t location, uint8_t length, uint8_t offset)

@@ -1,3 +1,28 @@
+void setRadioActivityEnabled(bool enabled)
+{
+  radio_activity_enabled = enabled;
+
+  if(!radio_driver_ready) return;
+
+  if(!enabled)
+  {
+    rfInterrupt = false;
+    radio.sleep();
+    return;
+  }
+
+  radio.setDio2AsRfSwitch(true);
+  radio.setCRC(0);
+  radio.setRxBandwidth(250);
+  radio.implicitHeader(6);
+  radio.startReceive();
+}
+
+bool isRadioActivityEnabled()
+{
+  return radio_activity_enabled;
+}
+
 void startupRadio()
 {
   Serial.print("Starting Radio...");
@@ -56,6 +81,8 @@ void startupRadio()
 
   if (state == RADIOLIB_ERR_NONE) 
   {
+    radio_driver_ready = true;
+    setRadioActivityEnabled(radio_activity_enabled);
     Serial.println(" Done");
   } 
   else 
@@ -75,6 +102,8 @@ void ICACHE_RAM_ATTR packetReceived(void)
 // Function to initiate pairing
 bool initiatePairing() 
 {
+  if(!isRadioActivityEnabled()) return false;
+
   uint8_t dest_address[3];
 
   rxprintln("Initiating Pairing...");
@@ -96,6 +125,7 @@ bool initiatePairing()
   
   while (millis() - startTime < PAIRING_TIMEOUT) 
   {
+    if(!isRadioActivityEnabled()) return false;
     unsigned long responseTime = millis();
     rxprintln("Sending pairing request packet: ");
     #ifdef DEBUG_RX
@@ -113,6 +143,7 @@ bool initiatePairing()
     
     while(millis() - responseTime < 1000)
     {    
+      if(!isRadioActivityEnabled()) return false;
       while(!rfInterrupt && millis() - responseTime < 1000) delay(10);
       delay(10);
       
@@ -169,10 +200,16 @@ bool initiatePairing()
 
 void checkPairing()
 {
+  if(!isRadioActivityEnabled())
+  {
+    Serial.println("Radio activity is disabled, pairing skipped.");
+    return;
+  }
+
   if(!usrConf.paired)
   {
     Serial.println("Not Paired!");
-    while(!usrConf.paired)
+    while(!usrConf.paired && isRadioActivityEnabled())
     {
       displayDigits(LET_E, LET_P);
       updateDisplay();
@@ -195,6 +232,11 @@ void checkPairing()
       displayDigits(LET_P, LET_A);
       updateDisplay();
       initiatePairing();
+    }
+    if(!isRadioActivityEnabled())
+    {
+      Serial.println("Pairing aborted because radio activity was disabled.");
+      return;
     }
     Serial.println("Pairing Done.");
     
@@ -227,7 +269,7 @@ void sendData(void *parameter)
 
   while(1)
   {
-    if(usrConf.paired)
+    if(usrConf.paired && isRadioActivityEnabled())
     {
       // Dest1, Dest2, Dest3, THR, Steer, CRC8
       uint8_t sendArray[6];
@@ -275,8 +317,10 @@ void waitForTelemetry(void *parameter)
   {
     //wait until called
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    if(!isRadioActivityEnabled()) continue;
     //wait until interrupt
-    while(!rfInterrupt) vTaskDelay(pdMS_TO_TICKS(5));
+    while(!rfInterrupt && isRadioActivityEnabled()) vTaskDelay(pdMS_TO_TICKS(5));
+    if(!isRadioActivityEnabled()) continue;
 
     uint8_t rcvArray[6];
     if (radio.readData(rcvArray, 6) == RADIOLIB_ERR_NONE) 

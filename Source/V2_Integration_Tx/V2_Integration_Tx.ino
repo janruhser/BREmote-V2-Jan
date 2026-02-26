@@ -14,7 +14,12 @@ void setup()
   startupDisplay();
 
   initSPIFFS();
+  if(!ensureWebUiInSPIFFS())
+  {
+    Serial.println("WARNING: Web UI seed failed.");
+  }
   getConfFromSPIFFS();
+  webCfgInit();
 
   if(usrConf.max_gears <= 0) usrConf.max_gears = 1;
 
@@ -51,6 +56,7 @@ void setup()
       delay(100);
     }
     system_locked = 0;
+    webCfgNotifyTxUnlocked();
   }
 
   if(usrConf.no_gear)
@@ -65,6 +71,13 @@ void setup()
 
   exitSetup();
   in_setup = false;
+  setHallActivityEnabled(false);
+  setRadioActivityEnabled(false);
+  setDisplayActivityEnabled(false);
+  if(!system_locked)
+  {
+    webCfgNotifyTxUnlocked();
+  }
 
   delay(100);
   if(serialOff)
@@ -78,6 +91,7 @@ void setup()
 
 void loop()
 {
+  webCfgLoop();
   runMenu();
   if(in_menu > 0) in_menu--;
 
