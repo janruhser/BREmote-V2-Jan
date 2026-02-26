@@ -434,6 +434,61 @@ void checkSerial()
           setHallActivityEnabled(false);
           Serial.println("All activity gateways disabled.");
         }
+        else if(commandLower.startsWith("?get "))
+        {
+          String key = command.substring(5);
+          key.trim();
+          String val, err;
+          if(cfgGetValueByKey(key, val, err))
+          {
+            Serial.print(key); Serial.print("="); Serial.println(val);
+          }
+          else
+          {
+            Serial.print("ERR: "); Serial.println(err);
+          }
+        }
+        else if(commandLower.startsWith("?set "))
+        {
+          String args = command.substring(5);
+          args.trim();
+          int sep = args.indexOf(' ');
+          if(sep < 1)
+          {
+            Serial.println("ERR: usage: ?set <key> <value>");
+          }
+          else
+          {
+            String key = args.substring(0, sep);
+            String val = args.substring(sep + 1);
+            val.trim();
+            String err;
+            bool radioReinit = false;
+            if(cfgSetValueByKey(key, val, err, radioReinit))
+            {
+              String readback, rerr;
+              cfgGetValueByKey(key, readback, rerr);
+              Serial.print("OK "); Serial.print(key); Serial.print("="); Serial.println(readback);
+              if(radioReinit) Serial.println("NOTE: radio reinit required (?reboot)");
+            }
+            else
+            {
+              Serial.print("ERR: "); Serial.println(err);
+            }
+          }
+        }
+        else if(commandLower == "?save")
+        {
+          saveConfToSPIFFS(usrConf);
+          Serial.println("OK config saved to SPIFFS");
+        }
+        else if(commandLower == "?keys")
+        {
+          for(size_t i = 0; i < kCfgFieldCount; i++)
+          {
+            Serial.println(kCfgFields[i].key);
+          }
+        }
         else if (commandLower == "?") {
           // List all possible inputs
           Serial.println("Possible commands:");
@@ -467,6 +522,10 @@ void checkSerial()
           Serial.println("?allOff - Disable hall/radio/display activity");
           Serial.println("?allOn - Enable hall/radio/display activity");
           Serial.println("?status - Print current subsystem status");
+          Serial.println("?get <key> - Get a single config value by name");
+          Serial.println("?set <key> <value> - Set a single config value in RAM");
+          Serial.println("?save - Persist current RAM config to SPIFFS");
+          Serial.println("?keys - List all available config field names");
         }
         else {
           Serial.println("Unknown command. Type '?' for help.");

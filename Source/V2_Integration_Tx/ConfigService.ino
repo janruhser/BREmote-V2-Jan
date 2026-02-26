@@ -353,7 +353,7 @@ static bool cfgAppendFieldJson(const confStruct &source, const CfgFieldSpec& spe
   return false;
 }
 
-static bool cfgValidateCrossField(const confStruct &candidate, String &err)
+static bool cfgValidateCrossField(confStruct &candidate, String &err)
 {
   if (candidate.max_gears < 1 || candidate.max_gears > 10)
   {
@@ -362,8 +362,7 @@ static bool cfgValidateCrossField(const confStruct &candidate, String &err)
   }
   if (candidate.startgear >= candidate.max_gears)
   {
-    err = "ERR_RANGE:startgear>=max_gears";
-    return false;
+    candidate.startgear = candidate.max_gears - 1;
   }
   return true;
 }

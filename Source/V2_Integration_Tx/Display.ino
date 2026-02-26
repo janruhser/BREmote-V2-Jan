@@ -242,7 +242,22 @@ void renderOperationalDisplay()
     }
     else
     {
-      displayShowTwoDigitOrDash(telemetry.foil_temp);
+      // If current mode is unavailable, silently advance to next available
+      if(!isDisplayModeAvailable(display_mode))
+      {
+        for(uint8_t i = 0; i < DISPLAY_MODE_COUNT; i++) {
+          display_mode = (display_mode + 1) % DISPLAY_MODE_COUNT;
+          if(isDisplayModeAvailable(display_mode)) break;
+        }
+      }
+      switch(display_mode) {
+        case DISPLAY_MODE_TEMP:   displayShowTwoDigitOrDash(telemetry.foil_temp); break;
+        case DISPLAY_MODE_SPEED:  displayShowTwoDigitOrDash(telemetry.foil_speed); break;
+        case DISPLAY_MODE_BAT:    displayShowTwoDigitOrDash(telemetry.foil_bat); break;
+        case DISPLAY_MODE_THR:    displayShowTwoDigitOrDash(thr_scaled * 99 / 255); break;
+        case DISPLAY_MODE_INTBAT: displayShowTwoDigitOrDash((uint8_t)(int_bat_volt * 10)); break;
+        default: displayShowTwoDigitOrDash(telemetry.foil_temp); break;
+      }
       updateDisplay();
     }
   }

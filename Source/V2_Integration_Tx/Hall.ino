@@ -1,3 +1,37 @@
+// Returns true if the given display mode has a valid value
+bool isDisplayModeAvailable(uint8_t mode)
+{
+  switch(mode) {
+    case DISPLAY_MODE_TEMP:   return telemetry.foil_temp  != 0xFF;
+    case DISPLAY_MODE_SPEED:  return telemetry.foil_speed != 0xFF;
+    case DISPLAY_MODE_BAT:    return telemetry.foil_bat   != 0xFF;
+    case DISPLAY_MODE_THR:    return true;
+    case DISPLAY_MODE_INTBAT: return true;
+    default: return false;
+  }
+}
+
+// Cycle display_mode in given direction (+1 or -1), skipping unavailable modes
+void cycleDisplayMode(int direction)
+{
+  uint8_t start = display_mode;
+  uint8_t next = display_mode;
+  for(uint8_t i = 0; i < DISPLAY_MODE_COUNT; i++) {
+    next = (next + DISPLAY_MODE_COUNT + direction) % DISPLAY_MODE_COUNT;
+    if(isDisplayModeAvailable(next)) break;
+  }
+  display_mode = next;
+  switch(display_mode) {
+    case DISPLAY_MODE_TEMP:   displayDigits(LET_T, LET_P); break;
+    case DISPLAY_MODE_SPEED:  displayDigits(5, LET_P); break;
+    case DISPLAY_MODE_BAT:    displayDigits(LET_B, LET_A); break;
+    case DISPLAY_MODE_THR:    displayDigits(LET_T, LET_H); break;
+    case DISPLAY_MODE_INTBAT: displayDigits(LET_U, LET_B); break;
+  }
+  updateDisplay();
+  delay(500);
+}
+
 //100us
 void calcFilter()
 {
@@ -203,20 +237,8 @@ void handleGearToggle(int direction)
         }
         else
         {
-          //Long press plus: follow-me toggle
-          if(0) //TODO: Add the enabler from usrConf later
-          {
-            if(followme_enabled)
-            {
-              followme_enabled = 0;
-              scroll4Digits(5,LET_T,LET_E,LET_E,150);
-            }
-            else
-            {
-              followme_enabled = 1;
-              scroll4Digits(LET_F,0,LET_L,LET_L,150);
-            }
-          }
+          //Long press plus: cycle display mode
+          cycleDisplayMode(1);
         }
         in_menu = usrConf.menu_timeout;
       }
@@ -235,6 +257,11 @@ void handleGearToggle(int direction)
           if(direction < 0 && gear > 0) gear--;
           else if(direction > 0 && gear < usrConf.max_gears-1) gear++;
           showNewGear();
+          change_once = 0;
+        }
+        else
+        {
+          cycleDisplayMode(direction);
           change_once = 0;
         }
         in_menu = usrConf.menu_timeout;
