@@ -97,13 +97,14 @@ confStruct defaultConf = {SW_VERSION, 1, 0, 0, 50, 0, 0, 1500, 2000, 1500, 2000,
 
 //Telemetry to send, MUST BE 8-bit!!
 struct __attribute__((packed)) TelemetryPacket {
-    uint8_t foil_bat = 0xFF;
-    uint8_t foil_temp = 0xFF;
-    uint8_t foil_speed = 0xFF;
-    uint8_t error_code = 0;
-    
-    //This must be the last entry
-    uint8_t link_quality = 0;
+    uint8_t foil_bat = 0xFF;    // index 0 — battery % 0-100
+    uint8_t foil_temp = 0xFF;   // index 1 — FET temp degC
+    uint8_t foil_speed = 0xFF;  // index 2 — speed km/h
+    uint8_t error_code = 0;     // index 3 — fault flags
+    // Phase 1: SCALE=watts/50  DECODE(Tx Display.ino)=foil_power*50  range 0-12750W at 50W resolution
+    uint8_t foil_power = 0xFF;  // index 4 — power (watts/50); 0xFF = not available
+    // This must be the last entry
+    uint8_t link_quality = 0;   // index 5 (was 4)
 } telemetry;
 
 /*
@@ -167,7 +168,7 @@ uint8_t percent_last_val = 0xFF;
 uint8_t percent_last_thr = 1;
 unsigned long percent_last_thr_change = 0;
 
-//#define VESC_MORE_VALUES
+#define VESC_MORE_VALUES
 #ifdef VESC_MORE_VALUES
   #define VESC_PACK_LEN 19
   uint8_t vescRelayBuffer[25];
