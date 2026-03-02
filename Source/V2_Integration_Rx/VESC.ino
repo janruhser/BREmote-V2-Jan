@@ -67,6 +67,22 @@ bool getValuesSelective(Stream* interface)
       motCur = buffer_get_int32(message, &cnt);
       batCur = buffer_get_int32(message, &cnt);
       duty = buffer_get_int16(message, &cnt);
+
+      // Power calculation
+      // batCur unit: int32 in mA*100. Divide by 100000.0f to get Amps.
+      float batCur_amps = (float)batCur / 100000.0f;
+      // fbatVolt is global float set at end of this function from previous cycle (one-cycle lag, acceptable)
+      float watts = fbatVolt * batCur_amps;
+      if (watts < 0.0f) watts = 0.0f;  // Clamp: ignore regenerative braking (negative current)
+      // SCALE: foil_power = watts/50  |  DECODE on Tx Display.ino: watts = foil_power * 50  (range 0-12750W)
+      telemetry.foil_power = (uint8_t)constrain(watts / 50.0f, 0.0f, 255.0f);
+
+      #ifdef DEBUG_VESC
+      Serial.print("V="); Serial.print(fbatVolt);
+      Serial.print(" I="); Serial.print(batCur_amps);
+      Serial.print(" W="); Serial.print(watts);
+      Serial.print(" encoded="); Serial.println(telemetry.foil_power);
+      #endif
     #endif
     batVolt = buffer_get_int16(message, &cnt);
     
