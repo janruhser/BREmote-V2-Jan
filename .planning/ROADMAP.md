@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md — Enable VESC_MORE_VALUES, extend TelemetryPacket with foil_power, compute and encode power in watts
+- [x] 01-01-PLAN.md — Enable VESC_MORE_VALUES, extend TelemetryPacket with foil_power, compute and encode power in watts
 
 ### Phase 2: Telemetry Struct + Wire
 **Goal**: foil_power field exists in TelemetryPacket on both Rx and Tx, and the Rx is cycling the new index through the LoRa telemetry channel
@@ -66,6 +66,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Rx VESC Extension | 0/1 | Not started | - |
+| 1. Rx VESC Extension | 1/1 | Plans complete | - |
 | 2. Telemetry Struct + Wire | 0/? | Not started | - |
 | 3. Tx Display | 0/? | Not started | - |
