@@ -58,21 +58,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VESC-01 | TBD | Pending |
-| VESC-02 | TBD | Pending |
-| VESC-03 | TBD | Pending |
-| TELE-01 | TBD | Pending |
-| TELE-02 | TBD | Pending |
-| TELE-03 | TBD | Pending |
-| TELE-04 | TBD | Pending |
-| DISP-01 | TBD | Pending |
-| DISP-02 | TBD | Pending |
+| VESC-01 | Phase 1 | Pending |
+| VESC-02 | Phase 1 | Pending |
+| VESC-03 | Phase 1 | Pending |
+| TELE-01 | Phase 2 | Pending |
+| TELE-02 | Phase 2 | Pending |
+| TELE-03 | Phase 1 | Pending |
+| TELE-04 | Phase 1 | Pending |
+| DISP-01 | Phase 3 | Pending |
+| DISP-02 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9
+- Mapped to phases: 9
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after initial definition*
+*Last updated: 2026-02-28 — traceability populated after roadmap creation*
