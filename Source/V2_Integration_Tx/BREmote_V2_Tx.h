@@ -93,13 +93,14 @@ confStruct defaultConf = {SW_VERSION, 1, 0, 0, 100, 0, 0, 0, 0, 0, 500, 30, 500,
 
 //Telemetry to receive, MUST BE 8-bit!!
 struct __attribute__((packed)) TelemetryPacket {
-    uint8_t foil_bat = 0xFF;
-    uint8_t foil_temp = 0xFF;
-    uint8_t foil_speed = 0xFF;
-    uint8_t error_code = 0;
-
+    uint8_t foil_bat = 0xFF;    // index 0 — battery % 0-100
+    uint8_t foil_temp = 0xFF;   // index 1 — FET temp degC
+    uint8_t foil_speed = 0xFF;  // index 2 — speed km/h
+    uint8_t error_code = 0;     // index 3 — fault flags
+    // SCALE=watts/50  DECODE=foil_power*50  range 0-12750W at 50W resolution
+    uint8_t foil_power = 0xFF;  // index 4 — power (watts/50); 0xFF = not available
     //This must be the last entry
-    uint8_t link_quality = 0;
+    uint8_t link_quality = 0;   // index 5 (was 4)
 } telemetry;
 
 /*
@@ -220,13 +221,7 @@ bool forceUpdateWebUiInSPIFFS();
 String getInstalledWebUiVersion();
 String getTargetWebUiVersion();
 
-// Forward declaration for Arduino-generated prototypes in ConfigService.ino.
-struct CfgFieldSpec;
-
-bool cfgGetAllJson(String &out);
-bool cfgGetValueByKey(const String& key, String &outValue, String &err);
-bool cfgSetValueByKey(const String& key, const String& value, String &err, bool &radioReinitRequired);
-bool cfgSetBatch(const String& payload, String &err, bool &radioReinitRequired);
+#include "../Common/ConfigServiceEngine.h"
 
 void webCfgInit();
 void webCfgLoop();
