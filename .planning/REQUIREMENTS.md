@@ -22,8 +22,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Display
 
-- [ ] **DISP-01**: Tx displays power value when cycling through display modes
-- [ ] **DISP-02**: Power displayed in watts with appropriate formatting for 7x10 LED matrix (e.g., "2.5" for 2500W or "P50" for 50W×scale)
+- [x] **DISP-01**: Tx displays power value when cycling through display modes
+- [x] **DISP-02**: Power displayed in watts with appropriate formatting for 7x10 LED matrix (e.g., "2.5" for 2500W or "P50" for 50W×scale)
 
 ## v2 Requirements
 
@@ -65,8 +65,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TELE-02 | Phase 2 | Complete |
 | TELE-03 | Phase 1 | Pending |
 | TELE-04 | Phase 1 | Pending |
-| DISP-01 | Phase 3 | Pending |
-| DISP-02 | Phase 3 | Pending |
+| DISP-01 | Phase 3 | Complete |
+| DISP-02 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 9 total
@@ -75,4 +75,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 — traceability populated after roadmap creation*
+*Last updated: 2026-03-03 — DISP-01, DISP-02 marked complete after Phase 3 execution*

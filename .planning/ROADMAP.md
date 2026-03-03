@@ -12,9 +12,9 @@ Three phases following the power data flow from source to screen: Rx queries VES
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Rx VESC Extension** - Enable VESC_MORE_VALUES, update VESC_PACK_LEN, compute power (voltage × battery current), encode to single byte
+- [x] **Phase 1: Rx VESC Extension** - Enable VESC_MORE_VALUES, update VESC_PACK_LEN, compute power (voltage × battery current), encode to single byte
 - [x] **Phase 2: Telemetry Struct + Wire** - Add foil_power field to TelemetryPacket on both Rx and Tx; Rx cycles new index over LoRa
-- [ ] **Phase 3: Tx Display** - Tx parses incoming foil_power index and renders watts on the LED matrix display
+- [x] **Phase 3: Tx Display** - Tx parses incoming foil_power index and renders watts on the LED matrix display
 
 ## Phase Details
 
@@ -54,10 +54,10 @@ Plans:
   1. Cycling through display modes on the Tx includes a power mode — the display shows a power reading rather than skipping or showing garbage
   2. The displayed watt value matches the expected load within 10% (validated against VESC Tool or a known load)
   3. Display formatting fits the 7x10 LED matrix — no digit truncation or overflow for typical eFoil power range (0-5000W)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 03-01: TBD
+- [x] 03-01-PLAN.md — Add DISPLAY_MODE_POWER to BREmote_V2_Tx.h, Hall.ino, and Display.ino; renders foil_power/2 as hectowatts on LED matrix
 
 ## Progress
 
@@ -66,6 +66,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Rx VESC Extension | 1/1 | Plans complete | - |
+| 1. Rx VESC Extension | 1/1 | Complete | 2026-03-03 |
 | 2. Telemetry Struct + Wire | 1/1 | Complete | 2026-03-03 |
-| 3. Tx Display | 0/? | Not started | - |
+| 3. Tx Display | 1/1 | Complete | 2026-03-03 |
