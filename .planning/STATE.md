@@ -76,5 +76,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Phase 2 complete and verified. Phase 3 (Tx Display) next — needs planning.
-Resume file: None
+Stopped at: Phase 3 context gathered. Ready for planning.
+Resume file: .planning/phases/03-tx-display/03-CONTEXT.md
