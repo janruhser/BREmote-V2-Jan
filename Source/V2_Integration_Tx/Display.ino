@@ -253,6 +253,7 @@ void renderOperationalDisplay()
       switch(display_mode) {
         case DISPLAY_MODE_TEMP:   displayShowTwoDigitOrDash(telemetry.foil_temp); break;
         case DISPLAY_MODE_SPEED:  displayShowTwoDigitOrDash(telemetry.foil_speed); break;
+        case DISPLAY_MODE_POWER:  displayShowTwoDigitOrDash(telemetry.foil_power != 0xFF ? min((uint8_t)(telemetry.foil_power / 2), (uint8_t)99) : 0xFF); break;
         case DISPLAY_MODE_BAT:    displayShowTwoDigitOrDash(telemetry.foil_bat); break;
         case DISPLAY_MODE_THR:    displayShowTwoDigitOrDash(thr_scaled * 99 / 255); break;
         case DISPLAY_MODE_INTBAT: displayShowTwoDigitOrDash((uint8_t)(int_bat_volt * 10)); break;
