@@ -13,7 +13,7 @@ Three phases following the power data flow from source to screen: Rx queries VES
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Rx VESC Extension** - Enable VESC_MORE_VALUES, update VESC_PACK_LEN, compute power (voltage × battery current), encode to single byte
-- [ ] **Phase 2: Telemetry Struct + Wire** - Add foil_power field to TelemetryPacket on both Rx and Tx; Rx cycles new index over LoRa
+- [x] **Phase 2: Telemetry Struct + Wire** - Add foil_power field to TelemetryPacket on both Rx and Tx; Rx cycles new index over LoRa
 - [ ] **Phase 3: Tx Display** - Tx parses incoming foil_power index and renders watts on the LED matrix display
 
 ## Phase Details
@@ -44,7 +44,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02-01-PLAN.md — Add foil_power field to Tx TelemetryPacket, synchronizing struct with Rx
+- [x] 02-01-PLAN.md — Add foil_power field to Tx TelemetryPacket, synchronizing struct with Rx
 
 ### Phase 3: Tx Display
 **Goal**: Tx remote shows power in watts when the rider cycles through display modes, with correct scaling and formatting on the 7x10 LED matrix
@@ -67,5 +67,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Rx VESC Extension | 1/1 | Plans complete | - |
-| 2. Telemetry Struct + Wire | 0/1 | Planned | - |
+| 2. Telemetry Struct + Wire | 1/1 | Complete | 2026-03-03 |
 | 3. Tx Display | 0/? | Not started | - |
