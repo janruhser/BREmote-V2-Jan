@@ -178,13 +178,14 @@ volatile float int_bat_volt = 0.0;
 volatile bool mot_active = 0;
 volatile bool system_locked = 1;
 
-// Display mode cycle: 0=temp, 1=speed, 2=vesc bat, 3=throttle, 4=int bat
+// Display mode cycle: 0=temp, 1=speed, 2=power, 3=vesc bat, 4=throttle, 5=int bat
 #define DISPLAY_MODE_TEMP    0
 #define DISPLAY_MODE_SPEED   1
-#define DISPLAY_MODE_BAT     2
-#define DISPLAY_MODE_THR     3
-#define DISPLAY_MODE_INTBAT  4
-#define DISPLAY_MODE_COUNT   5
+#define DISPLAY_MODE_POWER   2
+#define DISPLAY_MODE_BAT     3
+#define DISPLAY_MODE_THR     4
+#define DISPLAY_MODE_INTBAT  5
+#define DISPLAY_MODE_COUNT   6
 volatile uint8_t display_mode = 0;
 
 volatile uint16_t toggle_blocked_counter = 0;
