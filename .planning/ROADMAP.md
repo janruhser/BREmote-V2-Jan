@@ -41,10 +41,10 @@ Plans:
   1. `TelemetryPacket` struct on Rx and Tx are identical in field order and count — `sizeof(TelemetryPacket)` matches on both sides
   2. Rx cycles through telemetry indices including the new foil_power index — captured LoRa packets show the new index byte appearing in sequence alongside existing indices (0-3)
   3. Tx receives the foil_power index packet and writes the value into its local telemetry struct without corrupting adjacent fields (battery %, temp, speed, error remain correct)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — Add foil_power field to Tx TelemetryPacket, synchronizing struct with Rx
 
 ### Phase 3: Tx Display
 **Goal**: Tx remote shows power in watts when the rider cycles through display modes, with correct scaling and formatting on the 7x10 LED matrix
@@ -67,5 +67,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Rx VESC Extension | 1/1 | Plans complete | - |
-| 2. Telemetry Struct + Wire | 0/? | Not started | - |
+| 2. Telemetry Struct + Wire | 0/1 | Planned | - |
 | 3. Tx Display | 0/? | Not started | - |
