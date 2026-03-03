@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Tx remote displays real-time power data from the VESC without breaking compatibility with existing firmware
-**Current focus:** Phase 1 — Rx VESC Extension
+**Current focus:** Phase 2 — Telemetry Struct Wire
 
 ## Current Position
 
-Phase: 1 of 3 (Rx VESC Extension)
+Phase: 2 of 3 (Telemetry Struct Wire)
 Plan: 1 of 1 in current phase
-Status: Plans executed — awaiting verification
-Last activity: 2026-03-02 — Plan 01-01 executed (hardware validation deferred)
+Status: Plan 02-01 complete
+Last activity: 2026-03-03 — Plan 02-01 executed (foil_power added to Tx TelemetryPacket)
 
-Progress: [███░░░░░░░] 33%
+Progress: [██████░░░░] 66%
 
 ## Performance Metrics
 
@@ -47,6 +47,8 @@ Recent decisions affecting current work:
 - Rx-side power calculation (Rx has VESC config context; keeps Tx simple)
 - Compile-time value selection via `#define` (reflash acceptable; avoids confStruct complexity)
 - Power as first new value (highest community demand; derived from already-parsed fields)
+- No Radio.ino changes needed: ptr[rcvArray[3]] pointer-cast pattern and sizeof(TelemetryPacket) bounds check adapt automatically when struct grows from 5 to 6 bytes (02-01)
+- foil_power initialized to 0xFF (not 0) matching not-available sentinel convention used by all other telemetry fields (02-01)
 
 ### Pending Todos
 
@@ -60,6 +62,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-02
-Stopped at: Phase 1 plans executed. Hardware validation deferred. Running phase verification next.
+Last session: 2026-03-03
+Stopped at: Completed 02-01-PLAN.md (foil_power added to Tx TelemetryPacket, struct synced with Rx)
 Resume file: None

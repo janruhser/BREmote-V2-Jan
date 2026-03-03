@@ -15,8 +15,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Telemetry
 
-- [ ] **TELE-01**: New `foil_power` field appended to `TelemetryPacket` struct on Rx (before `link_quality`)
-- [ ] **TELE-02**: Matching `foil_power` field appended to `TelemetryPacket` struct on Tx
+- [x] **TELE-01**: New `foil_power` field appended to `TelemetryPacket` struct on Rx (before `link_quality`)
+- [x] **TELE-02**: Matching `foil_power` field appended to `TelemetryPacket` struct on Tx
 - [ ] **TELE-03**: `VESC_PACK_LEN` updated to match new VESC response size when `VESC_MORE_VALUES` is enabled
 - [ ] **TELE-04**: Old Tx firmware ignores new telemetry index gracefully (backwards compatible — verified by existing bounds check)
 
@@ -61,8 +61,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VESC-01 | Phase 1 | Pending |
 | VESC-02 | Phase 1 | Pending |
 | VESC-03 | Phase 1 | Pending |
-| TELE-01 | Phase 2 | Pending |
-| TELE-02 | Phase 2 | Pending |
+| TELE-01 | Phase 2 | Complete |
+| TELE-02 | Phase 2 | Complete |
 | TELE-03 | Phase 1 | Pending |
 | TELE-04 | Phase 1 | Pending |
 | DISP-01 | Phase 3 | Pending |
