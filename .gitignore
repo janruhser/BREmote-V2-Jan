@@ -2,6 +2,7 @@
 *.b#*
 *.br*
 *.md
+!README.md
 *.txt
 /Electronics/openfoil
 /Releases
