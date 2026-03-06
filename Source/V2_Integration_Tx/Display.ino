@@ -271,7 +271,7 @@ void renderOperationalDisplay()
 
 void displayError(int err)
 {
-  displayDigits(LET_E, err);
+  displayDigits(LET_E, min(err, 29));  // Clamp to prevent array overflow (num0[30][3])
   updateDisplay();
 }
 

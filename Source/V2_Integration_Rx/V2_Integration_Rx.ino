@@ -9,47 +9,13 @@ void setup()
 {
   enterSetup();
 
-  Wire.begin(P_I2C_SDA, P_I2C_SCL); //SDA, SCL
-  Wire.setClock(400000); // Set to 400 kHz
-  startupAW();
-
-  initSPIFFS();
-  getConfFromSPIFFS();
-  getBCFromSPIFFS();
-
-  startupRadio();
-  radio.setPacketReceivedAction(packetReceived);
-  radio.implicitHeader(6);
-  radio.startReceive();
-
-  checkButtons();
-
-  rxIsrState = 1;
-
-  initRMT();
-
-  Serial1.begin(115200, SERIAL_8N1, P_U1_RX, P_U1_TX);
-  
-  aw.digitalWrite(AP_EN_PWM0, 1);
-  aw.digitalWrite(AP_EN_PWM1, 1);
-
-  triggerReceiveSemaphore = xSemaphoreCreateBinary();
-  loopTaskHandle = xTaskGetCurrentTaskHandle();
-  
-  //Runs every 10ms to generate both PWM signals, high prio
-  xTaskCreatePinnedToCore(generatePWM, "Generate_PWM_10ms", 2048, NULL, 10, &generatePWMHandle, 0);
-  //Runs upon RF interrupt and reads packet & responds, medium-high prio
-  xTaskCreatePinnedToCore(triggeredReceive, "RF_ReceiveTask_triggered", 2048, NULL, 5, &triggeredReceiveHandle, 0);
-
-  //Checks if there is connection and blinks LED, low prio
-  xTaskCreatePinnedToCore(checkConnStatus, "Check_conn_staus_200ms", 2048, NULL, 2, &checkConnStatusHandle, 0);
-
-  configureGPS();
+  initHardware();
+  initStorage();
+  runBootSequence();
+  initTasks();
 
   exitSetup();
   PWM_active = 1;
-  
-  //pinMode(P_UBAT_MEAS, OUTPUT);
 }
 
 unsigned long loop_timer = 0;
@@ -57,6 +23,7 @@ int wetness_counter = 0;
 
 void loop()
 {
+  webCfgLoop();
   checkSerial();
 
   if(millis()-loop_timer > 1000)
@@ -91,4 +58,3 @@ void loop()
 
   vTaskDelay(pdMS_TO_TICKS(10));
 }
-

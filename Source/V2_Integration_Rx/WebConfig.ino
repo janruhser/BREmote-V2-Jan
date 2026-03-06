@@ -1,6 +1,6 @@
 #include "mbedtls/base64.h"
 
-static const char* WEB_CFG_AP_SSID = "BREmoteV2-TX-WebConfig";
+static const char* WEB_CFG_AP_SSID = "BREmoteV2-RX-WebConfig";
 static const char* WEB_CFG_AP_PASS = "12345678";
 static WebServer webCfgServer(80);
 static const uint8_t WEB_CFG_DBG_OFF = 0;
@@ -8,7 +8,7 @@ static const uint8_t WEB_CFG_DBG_SOME = 1;
 static const uint8_t WEB_CFG_DBG_FULL = 2;
 static bool web_cfg_ap_started = false;
 static bool web_cfg_ap_had_client = false;
-static bool web_cfg_tx_unlocked = false;
+static bool web_cfg_rx_connected = false;
 static uint8_t web_cfg_last_station_count = 0;
 static uint32_t web_cfg_ap_started_at_ms = 0;
 static String web_cfg_last_shutdown_reason = "";
@@ -134,6 +134,7 @@ static void webCfgHandleRoot()
   webCfgServer.streamFile(file, "text/html; charset=utf-8");
   file.close();
 }
+
 static void webCfgHandleState()
 {
   webCfgLogReq("state", "");
@@ -269,13 +270,12 @@ static void webCfgHandleReboot()
 static void webCfgHandleExport()
 {
   webCfgLogReq("config_export", "");
-  
+
   String format = webCfgServer.arg("format");
   format.toLowerCase();
-  
+
   if (format == "json")
   {
-    // Export as JSON
     String jsonOut;
     if (!cfgGetAllJson(jsonOut))
     {
@@ -288,18 +288,17 @@ static void webCfgHandleExport()
   }
   else
   {
-    // Export as Base64 struct (default)
     uint8_t rawData[sizeof(confStruct)];
     memcpy(rawData, &usrConf, sizeof(confStruct));
-    
+
     size_t encodedLen = 0;
     mbedtls_base64_encode(NULL, 0, &encodedLen, rawData, sizeof(confStruct));
     uint8_t* encodedData = new uint8_t[encodedLen];
     mbedtls_base64_encode(encodedData, encodedLen, &encodedLen, rawData, sizeof(confStruct));
-    
+
     String b64 = String((char*)encodedData);
     delete[] encodedData;
-    
+
     webCfgMarkOk();
     webCfgSendJson(200, "{\"ok\":1,\"format\":\"base64\",\"data\":\"" + b64 + "\"}");
   }
@@ -308,27 +307,26 @@ static void webCfgHandleExport()
 static void webCfgHandleImport()
 {
   webCfgLogReq("config_import", "");
-  
+
   String format = webCfgServer.arg("format");
   format.toLowerCase();
-  
+
   String data = webCfgServer.arg("data");
   String resetCal = webCfgServer.arg("reset_cal");
   String resetBind = webCfgServer.arg("reset_bind");
-  
+
   if (data.length() == 0)
   {
     webCfgMarkErr("ERR_IMPORT_NO_DATA");
     webCfgSendJson(400, "{\"ok\":0,\"err\":\"ERR_IMPORT_NO_DATA\"}");
     return;
   }
-  
+
   bool doResetCal = (resetCal == "1");
   bool doResetBind = (resetBind == "1");
-  
+
   if (format == "json")
   {
-    // Import from JSON - use batch set
     String err;
     bool radioReinit = false;
     if (!cfgSetBatch(data, err, radioReinit))
@@ -341,17 +339,16 @@ static void webCfgHandleImport()
   }
   else
   {
-    // Import from Base64 struct
     size_t decodedLen = 0;
     mbedtls_base64_decode(NULL, 0, &decodedLen, (const uint8_t*)data.c_str(), data.length());
-    
+
     if (decodedLen != sizeof(confStruct))
     {
       webCfgMarkErr("ERR_IMPORT_INVALID_SIZE");
       webCfgSendJson(400, "{\"ok\":0,\"err\":\"ERR_IMPORT_INVALID_SIZE\"}");
       return;
     }
-    
+
     uint8_t* decodedData = new uint8_t[decodedLen];
     if (mbedtls_base64_decode(decodedData, decodedLen, &decodedLen, (const uint8_t*)data.c_str(), data.length()) != 0)
     {
@@ -360,24 +357,19 @@ static void webCfgHandleImport()
       webCfgSendJson(400, "{\"ok\":0,\"err\":\"ERR_IMPORT_BASE64_FAILED\"}");
       return;
     }
-    
+
     confStruct newConf;
     memcpy(&newConf, decodedData, sizeof(confStruct));
     delete[] decodedData;
-    
-    // Handle reset options for hardware-related settings
+
+    // RX calibration reset: ubat_cal and ubat_offset
     if (doResetCal)
     {
-      newConf.cal_ok = 0;
-      newConf.cal_offset = 0;
-      newConf.thr_idle = 0;
-      newConf.thr_pull = 0;
-      newConf.tog_left = 0;
-      newConf.tog_mid = 0;
-      newConf.tog_right = 0;
+      newConf.ubat_cal = defaultConf.ubat_cal;
+      newConf.ubat_offset = defaultConf.ubat_offset;
       webCfgLogReq("config_import", "calibration reset");
     }
-    
+
     if (doResetBind)
     {
       newConf.paired = 0;
@@ -389,16 +381,14 @@ static void webCfgHandleImport()
       newConf.dest_address[2] = 0;
       webCfgLogReq("config_import", "binding reset");
     }
-    
-    // Validate version
+
     if (newConf.version != SW_VERSION)
     {
       webCfgMarkErr("ERR_IMPORT_VERSION_MISMATCH");
       webCfgSendJson(400, "{\"ok\":0,\"err\":\"ERR_IMPORT_VERSION_MISMATCH\",\"expected\":" + String(SW_VERSION) + ",\"got\":" + String(newConf.version) + "}");
       return;
     }
-    
-    // Validate all config values against their ranges
+
     String validationErr;
     if (!validateConfig(newConf, validationErr))
     {
@@ -406,12 +396,11 @@ static void webCfgHandleImport()
       webCfgSendJson(400, "{\"ok\":0,\"err\":\"ERR_IMPORT_VALIDATION_FAILED\",\"detail\":\"" + validationErr + "\"}");
       return;
     }
-    
-    // Apply imported config
+
     memcpy(&usrConf, &newConf, sizeof(confStruct));
     web_cfg_pending_save = true;
   }
-  
+
   webCfgMarkOk();
   String response = "{\"ok\":1,\"imported\":1";
   if (doResetCal) response += ",\"cal_reset\":1";
@@ -462,7 +451,7 @@ void webCfgInit()
 
   web_cfg_ap_started = true;
   web_cfg_ap_had_client = false;
-  web_cfg_tx_unlocked = false;
+  web_cfg_rx_connected = false;
   web_cfg_last_station_count = 0;
   web_cfg_ap_started_at_ms = millis();
   web_cfg_last_shutdown_reason = "";
@@ -486,9 +475,9 @@ void webCfgLoop()
     web_cfg_last_station_count = stationCount;
   }
 
-  if(web_cfg_tx_unlocked)
+  if(web_cfg_rx_connected)
   {
-    webCfgStopService("tx_unlocked");
+    webCfgStopService("rx_connected");
     return;
   }
 
@@ -545,20 +534,20 @@ bool webCfgSetStartupTimeoutMs(uint32_t timeoutMs)
   return true;
 }
 
-void webCfgNotifyTxUnlocked()
+void webCfgNotifyRxConnected()
 {
-  web_cfg_tx_unlocked = true;
+  web_cfg_rx_connected = true;
 }
 
 void webCfgEnableService()
 {
-  web_cfg_tx_unlocked = false;
+  web_cfg_rx_connected = false;
   webCfgInit();
 }
 
 void webCfgDisableService()
 {
-  web_cfg_tx_unlocked = true;
+  web_cfg_rx_connected = true;
   if(web_cfg_ap_started)
   {
     webCfgStopService("serial_wifioff");

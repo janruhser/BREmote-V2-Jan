@@ -170,6 +170,9 @@ volatile uint8_t thr_scaled = 0;
 volatile uint8_t tog_scaled = 0;
 volatile uint8_t steer_scaled = 0;
 
+volatile uint8_t thr_sent = 0;   // Post-expo+gear throttle actually sent over radio
+volatile uint8_t steer_sent = 0; // Steering value actually sent over radio
+
 //-1 = left, 1 = right input
 volatile int tog_input = 0;
 

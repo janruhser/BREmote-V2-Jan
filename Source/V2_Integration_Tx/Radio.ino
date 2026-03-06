@@ -289,6 +289,9 @@ void sendData(void *parameter)
         sendArray[4] = steer_scaled;//(uint8_t)steer_mult;
       }
 
+      thr_sent = sendArray[3];
+      steer_sent = sendArray[4];
+
       sendArray[5] = esp_crc8(sendArray, 5);
 
       rxprint("Sending: ");

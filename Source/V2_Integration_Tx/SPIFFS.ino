@@ -3,7 +3,7 @@
 static const char* WEB_UI_INDEX_PATH = "/index.html";
 static const char* WEB_UI_INDEX_TMP_PATH = "/index.new";
 static const char* WEB_UI_VERSION_PATH = "/ui.version";
-static const char* WEB_UI_VERSION = "2026-02-26.1";
+static const char* WEB_UI_VERSION = "2026-03-03.1";
 
 void initSPIFFS()
 {
@@ -136,6 +136,14 @@ bool readConfFromSPIFFS(confStruct& data) {
 
     memcpy(&data, decodedData, sizeof(confStruct));
     delete[] decodedData;
+    
+    // Validate config values against their ranges
+    String validationErr;
+    if (!validateConfig(data, validationErr)) {
+        Serial.println("Config validation failed: " + validationErr);
+        return false;
+    }
+    
     Serial.println("Struct successfully read from SPIFFS");
     return true;
 }

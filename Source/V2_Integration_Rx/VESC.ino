@@ -121,12 +121,19 @@ int receiveFromVESC(uint8_t * buf, Stream* interface)
         if(raw_message[0] != 2)
         {
           VESC_DEBUG_PRINTLN(".");
+          rcv_err = true;  // FIX: Set error flag when start byte is wrong
           cnt=0;
         }
       }
       if(cnt == 2)
       {
           eom = raw_message[1] + 5; //5 byte overhead
+          
+          // SECURITY FIX: Validate message length doesn't exceed buffer size
+          if (eom > sizeof(raw_message)) {
+            VESC_DEBUG_PRINTLN("VESC message too long - buffer overflow prevented!");
+            return 0;
+          }
       }
     }
   }

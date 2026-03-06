@@ -16,6 +16,8 @@
 #include "FS.h"
 #include "SPIFFS.h"
 #include "mbedtls/base64.h"
+#include <WiFi.h>
+#include <WebServer.h>
 
 #include "vesc_datatypes.h"
 #include "vesc_buffer.h"
@@ -94,6 +96,36 @@ struct confStruct {
 
 confStruct usrConf;
 confStruct defaultConf = {SW_VERSION, 1, 0, 0, 50, 0, 0, 1500, 2000, 1500, 2000, 1000, 10, 0, 1, 0, 0, 0, 0, 0, 25.0f, 10.0f, 10.0f, 5.0f, 35.0f, 45.0f, 45.0f, 0.0095554f, 0.0, 1000, 1, 0,{0, 0, 0}, {0, 0, 0}};
+
+#include "../Common/ConfigServiceEngine.h"
+
+// Web config globals
+volatile bool web_cfg_service_enabled = false;
+volatile bool web_cfg_pending_save = false;
+volatile bool web_cfg_radio_reinit_required = false;
+volatile uint32_t web_cfg_req_total = 0;
+volatile uint32_t web_cfg_req_ok = 0;
+volatile uint32_t web_cfg_req_err = 0;
+volatile uint8_t web_cfg_debug_mode = 1; // 0=off, 1=some, 2=full
+volatile uint32_t web_cfg_ap_startup_timeout_ms = 120000; // 0 disables timeout
+String web_cfg_last_err = "";
+
+bool ensureWebUiInSPIFFS();
+bool forceUpdateWebUiInSPIFFS();
+String getInstalledWebUiVersion();
+String getTargetWebUiVersion();
+
+void webCfgInit();
+void webCfgLoop();
+String webCfgGetStateLine();
+String webCfgGetLastError();
+String webCfgGetDebugModeName();
+bool webCfgSetDebugMode(const String& modeName);
+uint32_t webCfgGetStartupTimeoutMs();
+bool webCfgSetStartupTimeoutMs(uint32_t timeoutMs);
+void webCfgNotifyRxConnected();
+void webCfgEnableService();
+void webCfgDisableService();
 
 //Telemetry to send, MUST BE 8-bit!!
 struct __attribute__((packed)) TelemetryPacket {

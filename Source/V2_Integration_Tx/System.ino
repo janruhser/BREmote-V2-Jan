@@ -140,6 +140,9 @@ String checkHWConfig()
 }
 
 void printHexArray(const uint8_t* buffer, size_t size) {
+  if (buffer == nullptr || size == 0) {
+    return;
+  }
   for (size_t i = 0; i < size; i++) {
     // Print leading zero for values less than 0x10
     if (buffer[i] < 0x10) {
@@ -246,7 +249,16 @@ struct CmdEntry {
 };
 
 void cmdConf(const String &args) {
-  serPrintConf();
+  if (args.equalsIgnoreCase("json")) {
+    String json;
+    if (cfgGetAllJson(json)) {
+      Serial.println(json);
+    } else {
+      Serial.println("ERR: Failed to generate JSON");
+    }
+  } else {
+    serPrintConf();
+  }
 }
 
 void cmdSetConf(const String &args) {
@@ -732,8 +744,8 @@ void serPrintInputs(bool json)
 
     if(json)
     {
-      Serial.printf("{\"throttle\":%d,\"steering\":%d,\"toggle\":%d,\"toggle_input\":%d,\"locked\":%d,\"in_menu\":%d,\"steer_enabled\":%d,\"hall_enabled\":%d}\n",
-        thr_scaled, steer_scaled, tog_scaled, tog_input,
+      Serial.printf("{\"throttle\":%d,\"steering\":%d,\"thr_sent\":%d,\"steer_sent\":%d,\"toggle\":%d,\"toggle_input\":%d,\"locked\":%d,\"in_menu\":%d,\"steer_enabled\":%d,\"hall_enabled\":%d}\n",
+        thr_scaled, steer_scaled, thr_sent, steer_sent, tog_scaled, tog_input,
         system_locked ? 1 : 0, in_menu, usrConf.steer_enabled,
         isHallActivityEnabled() ? 1 : 0);
     }

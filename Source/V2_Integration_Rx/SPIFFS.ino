@@ -1,7 +1,14 @@
+#include "WebUiEmbedded.h"
+
+static const char* WEB_UI_INDEX_PATH = "/index.html";
+static const char* WEB_UI_INDEX_TMP_PATH = "/index.new";
+static const char* WEB_UI_VERSION_PATH = "/ui.version";
+static const char* WEB_UI_VERSION = "2026-03-03.1";
+
 void initSPIFFS()
 {
   Serial.print("Initializing SPIFFS...");
-  if(!SPIFFS.begin(false)) 
+  if(!SPIFFS.begin(false))
   {
     Serial.println("SPIFFS Mount Failed, Formatting Flash");
     aw.digitalWrite(AP_L_AUX, LOW);
@@ -23,9 +30,9 @@ void getConfFromSPIFFS()
   #ifdef DELETE_SPIFFS_CONF_AT_STARTUP
   deleteConfFromSPIFFS();
   #endif
-  
+
   Serial.println("Getting usr conf from SPIFFS...");
-  if (readConfFromSPIFFS(usrConf)) 
+  if (readConfFromSPIFFS(usrConf))
   {
     if(SW_VERSION != usrConf.version)
     {
@@ -51,9 +58,9 @@ void getConfFromSPIFFS()
     defaultConf.own_address[2] = mac_address[5];
 
     saveConfToSPIFFS(defaultConf);
-    if (!readConfFromSPIFFS(usrConf)) 
+    if (!readConfFromSPIFFS(usrConf))
     {
-      Serial.println("Error wiriting default conf!");
+      Serial.println("Error writing default conf!");
       while(1) blinkErr(4, AP_L_AUX);
     }
   }
@@ -75,21 +82,27 @@ void saveConfToSPIFFS(const confStruct& data) {
         return;
     }
 
-    // Save to SPIFFS
-    File file = SPIFFS.open(CONF_FILE_PATH, FILE_WRITE);
+    // Save to SPIFFS via temp file to prevent corruption on power loss
+    File file = SPIFFS.open("/data.tmp", FILE_WRITE);
     if (!file) {
-        Serial.println("Failed to open file for writing");
+        Serial.println("Failed to open temp file for writing");
         delete[] encodedData;
         return;
     }
     file.write(encodedData, encodedLen);
     file.close();
+    SPIFFS.remove(CONF_FILE_PATH);
+    SPIFFS.rename("/data.tmp", CONF_FILE_PATH);
     Serial.println("Struct saved to SPIFFS as Base64");
     Serial.println("Encoded Data: " + String((char*)encodedData));
     delete[] encodedData;
 }
 
 bool readConfFromSPIFFS(confStruct& data) {
+    // Recover from interrupted atomic write
+    if (!SPIFFS.exists(CONF_FILE_PATH) && SPIFFS.exists("/data.tmp")) {
+        SPIFFS.rename("/data.tmp", CONF_FILE_PATH);
+    }
     if (!SPIFFS.exists(CONF_FILE_PATH)) {
         Serial.println("File does not exist");
         return false;
@@ -116,13 +129,28 @@ bool readConfFromSPIFFS(confStruct& data) {
         return false;
     }
 
+    if (decodedLen < sizeof(confStruct)) {
+        Serial.println("Config data too short, corrupted?");
+        delete[] decodedData;
+        return false;
+    }
+
     memcpy(&data, decodedData, sizeof(confStruct));
     delete[] decodedData;
+
+    // Validate config values against their ranges (uses shared engine)
+    String validationErr;
+    if (!validateConfig(data, validationErr)) {
+        Serial.println("Config validation failed: " + validationErr);
+        return false;
+    }
+
     Serial.println("Struct successfully read from SPIFFS");
     return true;
 }
 
 void deleteConfFromSPIFFS() {
+    SPIFFS.remove("/data.tmp");
     if (SPIFFS.remove(CONF_FILE_PATH)) {
         Serial.println("File deleted successfully");
     } else {
@@ -131,9 +159,9 @@ void deleteConfFromSPIFFS() {
 }
 
 void getBCFromSPIFFS()
-{  
+{
   Serial.println("Getting bat conf from SPIFFS...");
-  if (readBCFromSPIFFS()) 
+  if (readBCFromSPIFFS())
   {
 
   }
@@ -142,7 +170,7 @@ void getBCFromSPIFFS()
     Serial.println("No batconf in SPIFFS, writing default...");
     //Generate Device Address
 
-    String data = "ANza2dfV1NLQz83LycjGxMPBv768uri3tbOysK6sq6mnpqSioZ+dm5qYlpWTkZCOjIqJh4WEgoB/fXt5eHZ0c3FvbmxqaGdlY2JgXl1bWVdWVFJRT01LSkhGRUNBQD48Ojk3NTQy";
+    String data = "ANna2dfV1NLQz83LycjGxMPBv768uri3tbOysK6sq6mnpqSioZ+dm5qYlpWTkZCOjIqJh4WEgoB/fXt5eHZ0c3FvbmxqaGdlY2JgXl1bWVdWVFJRT01LSkhGRUNBQD48Ojk3NTQy";
     uint8_t* encodedData = new uint8_t[data.length()];
     // Call the function to fill the encodedData array
     for (size_t i = 0; i < data.length(); i++) {
@@ -161,9 +189,9 @@ void getBCFromSPIFFS()
     Serial.println("BC saved to SPIFFS as Base64");
     delete[] encodedData;
 
-    if (!readBCFromSPIFFS()) 
+    if (!readBCFromSPIFFS())
     {
-      Serial.println("Error wiriting bat conf!");
+      Serial.println("Error writing bat conf!");
       while(1) blinkErr(4, AP_L_AUX);
     }
   }
@@ -219,4 +247,123 @@ void deleteBCFromSPIFFS() {
     } else {
         Serial.println("Failed to delete file");
     }
+}
+
+// ===== Web UI Embedding Functions =====
+
+static uint32_t webUiFnv1a(const uint8_t* data, size_t len)
+{
+  uint32_t hash = 2166136261UL;
+  for (size_t i = 0; i < len; i++)
+  {
+    hash ^= data[i];
+    hash *= 16777619UL;
+  }
+  return hash;
+}
+
+static uint32_t webUiFileFnv1a(File &file)
+{
+  uint8_t buf[256];
+  uint32_t hash = 2166136261UL;
+  while (file.available())
+  {
+    const size_t rd = file.read(buf, sizeof(buf));
+    for (size_t i = 0; i < rd; i++)
+    {
+      hash ^= buf[i];
+      hash *= 16777619UL;
+    }
+  }
+  return hash;
+}
+
+static bool webUiWriteVersionFile()
+{
+  File vf = SPIFFS.open(WEB_UI_VERSION_PATH, FILE_WRITE);
+  if (!vf) return false;
+  const size_t written = vf.print(WEB_UI_VERSION);
+  vf.close();
+  return written == String(WEB_UI_VERSION).length();
+}
+
+static bool webUiReadVersionFile(String &outVersion)
+{
+  if (!SPIFFS.exists(WEB_UI_VERSION_PATH)) return false;
+  File vf = SPIFFS.open(WEB_UI_VERSION_PATH, FILE_READ);
+  if (!vf) return false;
+  outVersion = vf.readString();
+  vf.close();
+  outVersion.trim();
+  return outVersion.length() > 0;
+}
+
+static bool webUiInstallEmbedded()
+{
+  SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+  File tmp = SPIFFS.open(WEB_UI_INDEX_TMP_PATH, FILE_WRITE);
+  if (!tmp) return false;
+  const size_t written = tmp.print(WEB_UI_INDEX_HTML);
+  tmp.close();
+  if (written != WEB_UI_INDEX_HTML_LEN)
+  {
+    SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+    return false;
+  }
+
+  File verify = SPIFFS.open(WEB_UI_INDEX_TMP_PATH, FILE_READ);
+  if (!verify)
+  {
+    SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+    return false;
+  }
+  const size_t fileSize = verify.size();
+  const uint32_t fileHash = webUiFileFnv1a(verify);
+  verify.close();
+  const uint32_t expectedHash = webUiFnv1a((const uint8_t*)WEB_UI_INDEX_HTML, WEB_UI_INDEX_HTML_LEN);
+  if (fileSize != WEB_UI_INDEX_HTML_LEN || fileHash != expectedHash)
+  {
+    SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+    return false;
+  }
+
+  SPIFFS.remove(WEB_UI_INDEX_PATH);
+  if (!SPIFFS.rename(WEB_UI_INDEX_TMP_PATH, WEB_UI_INDEX_PATH))
+  {
+    SPIFFS.remove(WEB_UI_INDEX_TMP_PATH);
+    return false;
+  }
+  return webUiWriteVersionFile();
+}
+
+String getTargetWebUiVersion()
+{
+  return String(WEB_UI_VERSION);
+}
+
+String getInstalledWebUiVersion()
+{
+  String installed;
+  if (!webUiReadVersionFile(installed)) return "none";
+  return installed;
+}
+
+bool forceUpdateWebUiInSPIFFS()
+{
+  return webUiInstallEmbedded();
+}
+
+bool ensureWebUiInSPIFFS()
+{
+  bool needsInstall = !SPIFFS.exists(WEB_UI_INDEX_PATH);
+  String installedVersion;
+  if (!needsInstall)
+  {
+    if (!webUiReadVersionFile(installedVersion) || installedVersion != WEB_UI_VERSION)
+    {
+      needsInstall = true;
+    }
+  }
+  if (!needsInstall) return true;
+  return webUiInstallEmbedded();
 }
