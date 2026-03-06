@@ -955,7 +955,8 @@ class BREmoteTester:
 
         EXPECTED_KEYS = {
             "radio_preset", "rf_power", "max_gears", "startgear",
-            "no_lock", "no_gear", "steer_enabled", "thr_expo",
+            "no_lock", "throttle_mode", "steer_enabled", "thr_expo",
+            "wifi_password", "dynamic_power_start", "dynamic_power_step",
             "own_address", "dest_address", "version"
         }
 

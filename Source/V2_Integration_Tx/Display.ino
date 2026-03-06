@@ -220,6 +220,23 @@ void showNewGear()
   updateDisplay();
 }
 
+void showCapPercent()
+{
+  uint8_t cap = throttleGetCapPercent();
+  uint8_t tens = cap / 10;
+  uint8_t ones = cap % 10;
+  if(cap >= 100)
+  {
+    // Show "FL" for full (100%)
+    displayDigits(LET_F, LET_L);
+  }
+  else
+  {
+    displayDigits(tens, ones);
+  }
+  updateDisplay();
+}
+
 static void displayShowTwoDigitOrDash(uint8_t value)
 {
   if(value != 0xFF)

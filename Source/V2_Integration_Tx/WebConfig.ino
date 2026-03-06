@@ -1,7 +1,7 @@
 #include "mbedtls/base64.h"
 
 static const char* WEB_CFG_AP_SSID = "BREmoteV2-TX-WebConfig";
-static const char* WEB_CFG_AP_PASS = "12345678";
+// Password now comes from usrConf.wifi_password
 static WebServer webCfgServer(80);
 static const uint8_t WEB_CFG_DBG_OFF = 0;
 static const uint8_t WEB_CFG_DBG_SOME = 1;
@@ -432,7 +432,10 @@ void webCfgInit()
   if(web_cfg_service_enabled) return;
 
   WiFi.mode(WIFI_AP);
-  if(!WiFi.softAP(WEB_CFG_AP_SSID, WEB_CFG_AP_PASS))
+  char ap_pass[9];
+  memcpy(ap_pass, usrConf.wifi_password, 8);
+  ap_pass[8] = '\0';
+  if(!WiFi.softAP(WEB_CFG_AP_SSID, ap_pass))
   {
     web_cfg_last_err = "ERR_AP_START";
     Serial.println("Web config AP start failed.");

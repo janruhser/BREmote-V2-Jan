@@ -121,7 +121,7 @@ void calcFilter()
 
 
   //Block toggle input when steering
-  if((thr_scaled > 3 && system_locked == 0 && !in_menu && usrConf.steer_enabled)||(usrConf.no_gear && usrConf.no_lock && !remote_error && !in_setup))
+  if((thr_scaled > 3 && system_locked == 0 && !in_menu && usrConf.steer_enabled)||(throttleForceToggleBlock() && !remote_error && !in_setup))
   {
     //If so, block steer and reset counter
     toggle_blocked_by_steer = 1;
@@ -254,18 +254,23 @@ void handleGearToggle(int direction)
     {
       if(change_once)
       {
-        if(!usrConf.no_gear)
+        switch(usrConf.throttle_mode)
         {
-          if(direction < 0 && gear > 0) gear--;
-          else if(direction > 0 && gear < usrConf.max_gears-1) gear++;
-          showNewGear();
-          change_once = 0;
+          case 0: // Gears
+          default:
+            if(direction < 0 && gear > 0) gear--;
+            else if(direction > 0 && gear < usrConf.max_gears-1) gear++;
+            showNewGear();
+            break;
+          case 1: // No gears — cycle display
+            cycleDisplayMode(direction);
+            break;
+          case 2: // Dynamic cap
+            throttleAdjustCap(direction);
+            showCapPercent();
+            break;
         }
-        else
-        {
-          cycleDisplayMode(direction);
-          change_once = 0;
-        }
+        change_once = 0;
         in_menu = usrConf.menu_timeout;
       }
     }
@@ -319,8 +324,7 @@ void runMenu()
             delay(1000);
             system_locked = 0;
             webCfgNotifyTxUnlocked();
-            if(usrConf.startgear >= usrConf.max_gears) usrConf.startgear = usrConf.max_gears-1;
-            gear = usrConf.startgear;
+            throttleReset();
             in_menu = usrConf.menu_timeout;
           }
         }

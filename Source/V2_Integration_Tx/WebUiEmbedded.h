@@ -70,7 +70,9 @@ const fields=[
 {key:"dest_address",label:"Dest Address",description:"Paired destination address",group:"Radio",type:"address3",def:"00,00,00"},
 {key:"max_gears",label:"Max Gears",description:"Maximum number of user gears",group:"Gears",type:"int",def:10,min:1,max:10},
 {key:"startgear",label:"Start Gear",description:"Gear after power-on/unlock",group:"Gears",type:"int",def:0,min:0,max:9},
-{key:"no_gear",label:"No Gear",description:"Disable gear switching",group:"Gears",type:"bool",def:0,min:0,max:1},
+{key:"throttle_mode",label:"Throttle Mode",description:"0=Gears, 1=No Gears, 2=Dynamic Cap",group:"Gears",type:"enum",def:0,min:0,max:2,options:[{v:0,l:"Gears"},{v:1,l:"No Gears"},{v:2,l:"Dynamic Cap"}]},
+{key:"dynamic_power_start",label:"Dynamic Power Start %",description:"Starting power cap for Dynamic Cap mode",group:"Gears",type:"int",def:85,min:10,max:100,unit:"%"},
+{key:"dynamic_power_step",label:"Dynamic Power Step %",description:"Cap adjustment per toggle press",group:"Gears",type:"int",def:5,min:1,max:25,unit:"%"},
 {key:"gear_change_waittime",label:"Gear Change Wait",description:"Hold time to change gear",group:"Gears",type:"int",def:100,min:0,max:65535,unit:"ms"},
 {key:"gear_display_time",label:"Gear Display Time",description:"Duration to show selected gear",group:"Gears",type:"int",def:1000,min:0,max:65535,unit:"ms"},
 {key:"thr_expo",label:"Throttle Expo",description:"Throttle curve (50 = linear)",group:"Throttle",type:"int",def:50,min:0,max:100},
@@ -99,7 +101,8 @@ const fields=[
 {key:"kalman_en",label:"Kalman Filter",description:"Kalman runtime enable",group:"GPS & Follow-Me",type:"bool",def:0,min:0,max:1},
 {key:"speed_src",label:"Speed Source",description:"Speed data source",group:"GPS & Follow-Me",type:"enum",def:0,min:0,max:3,options:[{v:0,l:"GPS RX km/h"},{v:1,l:"GPS RX knots"},{v:2,l:"GPS TX km/h"},{v:3,l:"GPS TX knots"}]},
 {key:"tx_gps_stale_timeout_ms",label:"TX GPS Stale Timeout",description:"TX GPS stale timeout",group:"GPS & Follow-Me",type:"int",def:1000,min:0,max:65535,unit:"ms"},
-{key:"version",label:"Config Version",description:"Must match firmware SW_VERSION",group:"System",type:"int",def:2,min:0,max:65535}
+{key:"wifi_password",label:"WiFi Password",description:"AP password (exactly 8 characters)",group:"System",type:"text",def:"12345678",minLen:8,maxLen:8},
+{key:"version",label:"Config Version",description:"Must match firmware SW_VERSION",group:"System",type:"int",def:3,min:0,max:65535}
 ];
 const state={values:{},loaded:{},saved:{},last:'-'};
 const openGroups={};

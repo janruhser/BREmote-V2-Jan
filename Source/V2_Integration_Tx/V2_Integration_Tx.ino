@@ -29,6 +29,11 @@ void setup()
     webCfgNotifyTxUnlocked();
   }
 
+  if(config_version_error)
+  {
+    serialOff = false;
+  }
+
   delay(100);
   if(serialOff)
   {
@@ -41,6 +46,13 @@ void setup()
 
 void loop()
 {
+  if(config_version_error)
+  {
+    scroll3Digits(LET_E, 5, LET_V, 200);
+    checkSerial();
+    return;
+  }
+
   webCfgLoop();
   runMenu();
   if(in_menu > 0) in_menu--;

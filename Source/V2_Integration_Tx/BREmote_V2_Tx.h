@@ -17,7 +17,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-#define SW_VERSION 2
+#define SW_VERSION 3
 const char* CONF_FILE_PATH = "/data.txt";
 
 //#define DELETE_SPIFFS_CONF_AT_STARTUP 1
@@ -58,7 +58,7 @@ struct confStruct {
 
     //UI Features
     uint16_t no_lock; //No locking function, as soon as remote is on, throttle is active
-    uint16_t no_gear; //Gears can't be switched
+    uint16_t throttle_mode; // 0=gears, 1=no gears, 2=dynamic cap
     uint16_t max_gears; //Max user gears
     uint16_t startgear; //The gear that is set after poweron or unlock (0 to 9)
     uint16_t steer_enabled; //If steering feature is enabled
@@ -85,10 +85,14 @@ struct confStruct {
     uint16_t paired;
     uint8_t own_address[3];
     uint8_t dest_address[3];
+    char wifi_password[8];      // WPA2 AP password, exactly 8 chars
+    uint16_t dynamic_power_start;  // 10-100, starting cap for mode 2 (default 85)
+    uint16_t dynamic_power_step; // 1-25, step size per toggle press in mode 2 (default 5)
 };
 
+static_assert(sizeof(confStruct) >= 80, "confStruct shrunk below V2 baseline");
 confStruct usrConf;
-confStruct defaultConf = {SW_VERSION, 1, 0, 0, 100, 0, 0, 0, 0, 0, 500, 30, 500, 5000, 2000, 100, 1000, 10, 2000, 0, 0, 10, 0, 1, 50, 0, 50, 0, 0.000185662f, 0, 0, 0, 0, 1000, 0, {0, 0, 0}, {0, 0, 0}};
+confStruct defaultConf = {SW_VERSION, 1, 0, 0, 100, 0, 0, 0, 0, 0, 500, 30, 500, 5000, 2000, 100, 1000, 10, 2000, 0, 0, 10, 0, 1, 50, 0, 50, 0, 0.000185662f, 0, 0, 0, 0, 1000, 0, {0, 0, 0}, {0, 0, 0}, "12345678", 85, 5};
 
 
 //Telemetry to receive, MUST BE 8-bit!!
@@ -144,6 +148,7 @@ volatile uint8_t remote_error = 0;
 volatile bool remote_error_blocked = 0;
 
 volatile bool in_setup = 0;
+volatile bool config_version_error = false;
 
 // Unused — replaced by local buffers in waitForTelemetry() and initiatePairing()
 //volatile uint8_t payload_buffer[10];
@@ -165,6 +170,7 @@ volatile int bat_filter_count = 0;
 volatile int last_channel = 0;
 
 volatile int gear = 0;
+volatile uint8_t max_power_cap = 85;  // Runtime cap for throttle_mode 2
 
 volatile uint8_t thr_scaled = 0;
 volatile uint8_t tog_scaled = 0;

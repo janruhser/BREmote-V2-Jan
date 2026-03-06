@@ -776,14 +776,14 @@ void serPrintStatus(bool json)
 {
   if(json)
   {
-    Serial.printf("{\"hall\":\"%s\",\"radio\":\"%s\",\"display\":\"%s\",\"wifi\":\"%s\",\"locked\":%s,\"paired\":%s,\"gear\":%d,\"max_gears\":%d,\"error\":%d,\"last_pkt_ms\":%lu}\n",
+    Serial.printf("{\"hall\":\"%s\",\"radio\":\"%s\",\"display\":\"%s\",\"wifi\":\"%s\",\"locked\":%s,\"paired\":%s,\"throttle_mode\":%d,\"gear\":%d,\"max_gears\":%d,\"max_power_cap\":%d,\"error\":%d,\"last_pkt_ms\":%lu}\n",
       isHallActivityEnabled() ? "ON" : "OFF",
       isRadioActivityEnabled() ? "ON" : "OFF",
       isDisplayActivityEnabled() ? "ON" : "OFF",
       web_cfg_service_enabled ? "ON" : "OFF",
       system_locked ? "true" : "false",
       usrConf.paired ? "true" : "false",
-      gear, usrConf.max_gears, remote_error,
+      usrConf.throttle_mode, gear, usrConf.max_gears, max_power_cap, remote_error,
       millis() - last_packet);
   }
   else
@@ -795,7 +795,9 @@ void serPrintStatus(bool json)
     Serial.print("WiFi AP: "); Serial.println(web_cfg_service_enabled ? "ON" : "OFF");
     Serial.print("Locked:  "); Serial.println(system_locked ? "YES" : "NO");
     Serial.print("Paired:  "); Serial.println(usrConf.paired ? "YES" : "NO");
-    Serial.print("Gear:    "); Serial.print(gear); Serial.print("/"); Serial.println(usrConf.max_gears);
+    Serial.print("Thr Mode: "); Serial.println(usrConf.throttle_mode == 0 ? "Gears" : usrConf.throttle_mode == 1 ? "No Gears" : "Dynamic Cap");
+    if(usrConf.throttle_mode == 0) { Serial.print("Gear:    "); Serial.print(gear); Serial.print("/"); Serial.println(usrConf.max_gears); }
+    if(usrConf.throttle_mode == 2) { Serial.print("Cap:     "); Serial.print(max_power_cap); Serial.println("%"); }
     Serial.print("Error:   "); Serial.println(remote_error);
     Serial.print("Last pkt (ms ago): "); Serial.println(millis() - last_packet);
     Serial.println("--------------");
@@ -942,7 +944,13 @@ void printConfStruct(const confStruct &data) {
     Serial.print("Error Delete Time: "); Serial.println(data.err_delete_time);
 
     Serial.print("No Lock: "); Serial.println(data.no_lock);
-    Serial.print("No Gear: "); Serial.println(data.no_gear);
+    Serial.print("Throttle Mode: "); Serial.println(data.throttle_mode);
+    Serial.print("Dynamic Power Start: "); Serial.println(data.dynamic_power_start);
+    Serial.print("Dynamic Power Step: "); Serial.println(data.dynamic_power_step);
+    {
+      char wp[9]; memcpy(wp, data.wifi_password, 8); wp[8] = '\0';
+      Serial.print("WiFi Password: "); Serial.println(wp);
+    }
     Serial.print("Max Gears: "); Serial.println(data.max_gears);
     Serial.print("Start Gear: "); Serial.println(data.startgear);
     Serial.print("Steer Enabled: "); Serial.println(data.steer_enabled);

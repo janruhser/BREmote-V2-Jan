@@ -3,7 +3,7 @@
 static const char* WEB_UI_INDEX_PATH = "/index.html";
 static const char* WEB_UI_INDEX_TMP_PATH = "/index.new";
 static const char* WEB_UI_VERSION_PATH = "/ui.version";
-static const char* WEB_UI_VERSION = "2026-03-03.1";
+static const char* WEB_UI_VERSION = "2026-03-06.1";
 
 void initSPIFFS()
 {
@@ -35,10 +35,11 @@ void getConfFromSPIFFS()
   {
     if(SW_VERSION != usrConf.version)
     {
-      Serial.println("Error, version mismatch! Update firmware!");
-      Serial.print("Config version: ");
-      Serial.print(usrConf.version);
-      while(1) scroll3Digits(LET_E, 5, LET_V, 200);
+      Serial.println("Config version mismatch!");
+      Serial.print("Config version: "); Serial.print(usrConf.version);
+      Serial.print(", firmware version: "); Serial.println(SW_VERSION);
+      Serial.println("Run ?clearspiffs + ?reboot to load defaults.");
+      config_version_error = true;
     }
   }
   else

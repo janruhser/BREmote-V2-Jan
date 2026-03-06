@@ -25,7 +25,7 @@
 
 #include <TinyGPS++.h> //TinyGPSPlus 1.0.3 Mikal Hart
 
-#define SW_VERSION 2
+#define SW_VERSION 3
 const char* CONF_FILE_PATH = "/data.txt";
 const char* BC_FILE_PATH = "/batconf.txt";
 
@@ -91,11 +91,13 @@ struct confStruct {
     uint16_t paired;
     uint8_t own_address[3];
     uint8_t dest_address[3];
+    char wifi_password[8];  // WPA2 AP password, exactly 8 chars
 
 };
 
+static_assert(sizeof(confStruct) >= 88, "confStruct shrunk below V2 baseline");
 confStruct usrConf;
-confStruct defaultConf = {SW_VERSION, 1, 0, 0, 50, 0, 0, 1500, 2000, 1500, 2000, 1000, 10, 0, 1, 0, 0, 0, 0, 0, 25.0f, 10.0f, 10.0f, 5.0f, 35.0f, 45.0f, 45.0f, 0.0095554f, 0.0, 1000, 1, 0,{0, 0, 0}, {0, 0, 0}};
+confStruct defaultConf = {SW_VERSION, 1, 0, 0, 50, 0, 0, 1500, 2000, 1500, 2000, 1000, 10, 0, 1, 0, 0, 0, 0, 0, 25.0f, 10.0f, 10.0f, 5.0f, 35.0f, 45.0f, 45.0f, 0.0095554f, 0.0, 1000, 1, 0, {0, 0, 0}, {0, 0, 0}, "12345678"};
 
 #include "../Common/ConfigServiceEngine.h"
 
@@ -159,6 +161,7 @@ SemaphoreHandle_t triggerReceiveSemaphore;
 */
 volatile bool rfInterrupt = false;
 volatile bool rxIsrState = 0;
+volatile bool config_version_error = false;
 
 volatile int unpairedBlink = 0;
 

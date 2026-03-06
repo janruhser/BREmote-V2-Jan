@@ -23,14 +23,19 @@ void initStorage()
   if(usrConf.max_gears <= 0) usrConf.max_gears = 1;
 
   // Radio init requires usrConf (radio_preset, rf_power) — must come after config load
-  startupRadio();
-  radio.setDio1Action(packetReceived);
+  if(!config_version_error)
+  {
+    startupRadio();
+    radio.setDio1Action(packetReceived);
+  }
 }
 
 // ===== FreeRTOS Tasks =====
 
 void initTasks()
 {
+  if(config_version_error) return;
+
   xTaskCreatePinnedToCore(sendData, "Send_Data_100ms", 2048, NULL, 5, &sendDataHandle, 0);
   xTaskCreatePinnedToCore(waitForTelemetry, "wait_for_telem_triggered", 2048, NULL, 4, &triggeredWaitForTelemetryHandle, 0);
   xTaskCreatePinnedToCore(measBufCalc, "wait_for_telem_triggered_10ms", 2048, NULL, 6, &measBufCalcHandle, 0);
@@ -42,6 +47,8 @@ void initTasks()
 void runBootSequence()
 {
   bootAnimation();
+  if(config_version_error) return;
+
   checkCal();
   checkStartupButtons();
   checkPairing();
@@ -51,6 +58,12 @@ void runBootSequence()
 
 void applyConfigSettings()
 {
+  if(config_version_error)
+  {
+    system_locked = 1;
+    return;
+  }
+
   if(usrConf.no_lock)
   {
     while(thr_scaled > 10)
@@ -62,13 +75,5 @@ void applyConfigSettings()
     webCfgNotifyTxUnlocked();
   }
 
-  if(usrConf.no_gear)
-  {
-    gear = usrConf.max_gears - 1;
-  }
-  else
-  {
-    if(usrConf.startgear >= usrConf.max_gears) usrConf.startgear = usrConf.max_gears - 1;
-    gear = usrConf.startgear;
-  }
+  throttleInit();
 }

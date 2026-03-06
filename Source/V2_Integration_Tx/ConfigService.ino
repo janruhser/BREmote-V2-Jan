@@ -7,8 +7,11 @@ const CfgFieldSpec kCfgFields[] = {
   {"max_gears", CFG_U16, offsetof(confStruct, max_gears), true, false, true, 1.0f, 10.0f, 0, false},
   {"startgear", CFG_U16, offsetof(confStruct, startgear), true, false, true, 0.0f, 9.0f, 0, false},
   {"no_lock", CFG_U16, offsetof(confStruct, no_lock), true, false, true, 0.0f, 1.0f, 0, false},
-  {"no_gear", CFG_U16, offsetof(confStruct, no_gear), true, false, true, 0.0f, 1.0f, 0, false},
+  {"throttle_mode", CFG_U16, offsetof(confStruct, throttle_mode), true, false, true, 0.0f, 2.0f, 0, false},
   {"steer_enabled", CFG_U16, offsetof(confStruct, steer_enabled), true, false, true, 0.0f, 1.0f, 0, false},
+  {"wifi_password", CFG_STR8, offsetof(confStruct, wifi_password), true, false, false, 0.0f, 0.0f, 8, false},
+  {"dynamic_power_start", CFG_U16, offsetof(confStruct, dynamic_power_start), true, false, true, 10.0f, 100.0f, 0, false},
+  {"dynamic_power_step", CFG_U16, offsetof(confStruct, dynamic_power_step), true, false, true, 1.0f, 25.0f, 0, false},
   {"thr_expo", CFG_U16, offsetof(confStruct, thr_expo), true, false, true, 0.0f, 100.0f, 0, false},
   {"tog_deadzone", CFG_U16, offsetof(confStruct, tog_deadzone), true, false, true, 100.0f, 3000.0f, 0, false},
   {"tog_diff", CFG_U16, offsetof(confStruct, tog_diff), true, false, true, 1.0f, 200.0f, 0, false},
@@ -54,5 +57,11 @@ bool cfgValidateCrossField(confStruct &candidate, String &err)
   {
     candidate.startgear = candidate.max_gears - 1;
   }
+  if (candidate.throttle_mode == 2 && candidate.dynamic_power_start < 10)
+  {
+    candidate.dynamic_power_start = 10;
+  }
+  if (candidate.dynamic_power_step < 1) candidate.dynamic_power_step = 1;
+  if (candidate.dynamic_power_step > 25) candidate.dynamic_power_step = 25;
   return true;
 }

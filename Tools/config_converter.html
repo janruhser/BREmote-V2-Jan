@@ -106,12 +106,14 @@ const U16   = 'u16';
 const I16   = 'i16';
 const FLOAT = 'float';
 const ADDR3 = 'u8_3'; // uint8_t[3]
+const STR8  = 'str8'; // char[8]
 
 function fieldSize(type) {
     switch (type) {
         case U16: case I16: return 2;
         case FLOAT: return 4;
         case ADDR3: return 3;
+        case STR8: return 8;
     }
 }
 function fieldAlign(type) {
@@ -119,6 +121,7 @@ function fieldAlign(type) {
         case U16: case I16: return 2;
         case FLOAT: return 4;
         case ADDR3: return 1;
+        case STR8: return 1;
     }
 }
 
@@ -255,10 +258,12 @@ const TX_V3_FIELDS = [
     F('kalman_en',            U16,   0),
     F('speed_src',            U16,   0),
     F('tx_gps_stale_timeout_ms', U16, 1000),
-    F('max_power_percent',    U16,   85),  // new in V3
     F('paired',               U16,   0),
     F('own_address',          ADDR3, [0,0,0]),
     F('dest_address',         ADDR3, [0,0,0]),
+    F('wifi_password',        STR8,  '12345678'),  // new in V3
+    F('dynamic_power_start',  U16,   85),           // new in V3
+    F('dynamic_power_step',   U16,   5),            // new in V3
 ];
 
 // ── RX struct definitions ──
@@ -324,6 +329,44 @@ const RX_V2_FIELDS = [
     F('dest_address',         ADDR3, [0,0,0]),
 ];
 
+const RX_V3_FIELDS = [
+    F('version',              U16,   3),
+    F('radio_preset',         U16,   1),
+    F('rf_power',             I16,   0),
+    F('steering_type',        U16,   0),
+    F('steering_influence',   U16,   50),
+    F('steering_inverted',    U16,   0),
+    F('trim',                 I16,   0),
+    F('PWM0_min',             U16,   1500),
+    F('PWM0_max',             U16,   2000),
+    F('PWM1_min',             U16,   1500),
+    F('PWM1_max',             U16,   2000),
+    F('failsafe_time',        U16,   1000),
+    F('foil_num_cells',       U16,   10),
+    F('bms_det_active',       U16,   0),
+    F('wet_det_active',       U16,   1),
+    F('dummy_delete_me',      U16,   0),
+    F('data_src',             U16,   0),
+    F('gps_en',               U16,   0),
+    F('followme_mode',        U16,   0),
+    F('kalman_en',            U16,   0),
+    F('boogie_vmax_in_followme_kmh', FLOAT, 25.0),
+    F('min_dist_m',           FLOAT, 10.0),
+    F('followme_smoothing_band_m', FLOAT, 10.0),
+    F('foiler_low_speed_kmh', FLOAT, 5.0),
+    F('zone_angle_enter_deg', FLOAT, 35.0),
+    F('zone_angle_exit_deg',  FLOAT, 45.0),
+    F('near_diag_offset_deg', FLOAT, 45.0),
+    F('ubat_cal',             FLOAT, 0.0095554),
+    F('ubat_offset',          FLOAT, 0.0),
+    F('tx_gps_stale_timeout_ms', U16, 1000),
+    F('logger_en',            U16,   1),
+    F('paired',               U16,   0),
+    F('own_address',          ADDR3, [0,0,0]),
+    F('dest_address',         ADDR3, [0,0,0]),
+    F('wifi_password',        STR8,  '12345678'),  // new in V3
+];
+
 // ── Known field renames across versions ──
 const RENAMES = {
     'no_gear': 'throttle_mode',
@@ -335,7 +378,7 @@ function getFields(device, version) {
     const key = device + '_' + version;
     const map = {
         'tx_1': TX_V1_FIELDS, 'tx_2': TX_V2_FIELDS, 'tx_3': TX_V3_FIELDS,
-        'rx_1': RX_V1_FIELDS, 'rx_2': RX_V2_FIELDS,
+        'rx_1': RX_V1_FIELDS, 'rx_2': RX_V2_FIELDS, 'rx_3': RX_V3_FIELDS,
     };
     return map[key] || null;
 }
@@ -347,6 +390,11 @@ function readField(dv, offset, type) {
         case I16:   return dv.getInt16(offset, true);
         case FLOAT: return dv.getFloat32(offset, true);
         case ADDR3: return [dv.getUint8(offset), dv.getUint8(offset+1), dv.getUint8(offset+2)];
+        case STR8: {
+            let s = '';
+            for (let i = 0; i < 8; i++) s += String.fromCharCode(dv.getUint8(offset + i));
+            return s;
+        }
     }
 }
 function writeField(dv, offset, type, value) {
@@ -360,6 +408,11 @@ function writeField(dv, offset, type, value) {
             dv.setUint8(offset+1, arr[1]);
             dv.setUint8(offset+2, arr[2]);
             break;
+        case STR8: {
+            const str = typeof value === 'string' ? value : '12345678';
+            for (let i = 0; i < 8; i++) dv.setUint8(offset + i, i < str.length ? str.charCodeAt(i) : 0);
+            break;
+        }
     }
 }
 
@@ -437,6 +490,7 @@ function convertValues(srcValues, srcFields, tgtFields) {
 
 // ── Format a value for JSON display ──
 function formatValue(value, type) {
+    if (type === STR8) return '"' + value + '"';
     if (type === ADDR3) return JSON.stringify(value);
     if (type === FLOAT) {
         // Show enough precision for floats like 0.000185662

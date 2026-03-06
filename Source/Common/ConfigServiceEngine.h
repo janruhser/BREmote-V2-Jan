@@ -19,7 +19,8 @@ enum CfgFieldType
   CFG_U16,
   CFG_I16,
   CFG_FLOAT,
-  CFG_ADDR3
+  CFG_ADDR3,
+  CFG_STR8
 };
 
 struct CfgFieldSpec
@@ -201,6 +202,27 @@ static bool cfgApplyFieldValue(confStruct &target, const CfgFieldSpec& spec, con
     return true;
   }
 
+  if (spec.type == CFG_STR8)
+  {
+    String sv = valueIn;
+    sv.trim();
+    if (sv.length() != 8)
+    {
+      err = "ERR_BAD_VALUE:" + String(spec.key) + " (must be exactly 8 chars)";
+      return false;
+    }
+    for (int ci = 0; ci < 8; ci++)
+    {
+      if (sv[ci] < 0x20 || sv[ci] > 0x7E)
+      {
+        err = "ERR_BAD_VALUE:" + String(spec.key) + " (non-printable char)";
+        return false;
+      }
+    }
+    memcpy(ptr, sv.c_str(), 8);
+    return true;
+  }
+
   if (spec.type == CFG_FLOAT)
   {
     float fv = 0.0f;
@@ -297,6 +319,14 @@ static bool cfgReadFieldValue(const confStruct &source, const CfgFieldSpec& spec
     outValue = cfgFormatAddress3(reinterpret_cast<const uint8_t*>(ptr));
     return true;
   }
+  if (spec.type == CFG_STR8)
+  {
+    char buf[9];
+    memcpy(buf, ptr, 8);
+    buf[8] = '\0';
+    outValue = String(buf);
+    return true;
+  }
   return false;
 }
 
@@ -332,6 +362,16 @@ static bool cfgAppendFieldJson(const confStruct &source, const CfgFieldSpec& spe
     const uint8_t* addr = reinterpret_cast<const uint8_t*>(ptr);
     out += "\"";
     out += cfgFormatAddress3(addr);
+    out += "\"";
+    return true;
+  }
+  if (spec.type == CFG_STR8)
+  {
+    char buf[9];
+    memcpy(buf, ptr, 8);
+    buf[8] = '\0';
+    out += "\"";
+    out += String(buf);
     out += "\"";
     return true;
   }
