@@ -5,4 +5,4 @@
 *.txt
 /Electronics/openfoil
 /Releases
-/Inofficial
+/Inofficial__pycache__/
