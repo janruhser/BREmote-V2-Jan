@@ -1,3 +1,5 @@
+> **Fork of [Luddi96/BREmote-V2](https://github.com/Luddi96/BREmote-V2)** — This repository contains custom modifications and additional tooling on top of the original BREmote V2 project.
+
 <p align="center">
   <img src="img/banner.png" alt="BREmote" width="600">
 </p>
