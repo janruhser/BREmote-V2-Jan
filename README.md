@@ -17,6 +17,10 @@
   <a href="#license">License</a>
 </p>
 
+<p align="center">
+  <a href="https://raw.githack.com/janruhser/BREmote-V2-Jan/main/Tools/config_converter.html"><strong>Open Config Converter Tool</strong></a>
+</p>
+
 ---
 
 ## Features
