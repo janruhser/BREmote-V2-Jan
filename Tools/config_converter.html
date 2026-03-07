@@ -429,6 +429,20 @@ function b64Encode(buf) {
     return btoa(bin);
 }
 
+// ── Address hex formatting ──
+function addrToHex(arr) {
+    return arr.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(':');
+}
+function hexToAddr(str) {
+    const parts = str.split(':');
+    if (parts.length !== 3) throw new Error('Address must be 3 hex bytes like AB:CD:EF');
+    return parts.map(p => {
+        const v = parseInt(p, 16);
+        if (isNaN(v) || v < 0 || v > 255) throw new Error('Invalid hex byte: ' + p);
+        return v;
+    });
+}
+
 // ── Decode binary to field values ──
 function decodeStruct(bytes, fields) {
     const layout = computeLayout(fields);
@@ -491,7 +505,7 @@ function convertValues(srcValues, srcFields, tgtFields) {
 // ── Format a value for JSON display ──
 function formatValue(value, type) {
     if (type === STR8) return '"' + value + '"';
-    if (type === ADDR3) return JSON.stringify(value);
+    if (type === ADDR3) return addrToHex(value);
     if (type === FLOAT) {
         // Show enough precision for floats like 0.000185662
         if (value === 0) return '0.0';
@@ -509,7 +523,11 @@ function parseJsonInput(text, fields) {
     const values = {};
     for (const f of fields) {
         if (obj[f.name] !== undefined) {
-            values[f.name] = obj[f.name];
+            if (f.type === ADDR3 && typeof obj[f.name] === 'string') {
+                values[f.name] = hexToAddr(obj[f.name]);
+            } else {
+                values[f.name] = obj[f.name];
+            }
         } else {
             values[f.name] = f.default;
         }
@@ -522,7 +540,7 @@ function valuesToJson(values, fields) {
     const obj = {};
     for (const f of fields) {
         const v = values[f.name] !== undefined ? values[f.name] : f.default;
-        obj[f.name] = v;
+        obj[f.name] = (f.type === ADDR3 && Array.isArray(v)) ? addrToHex(v) : v;
     }
     return JSON.stringify(obj, null, 2);
 }
