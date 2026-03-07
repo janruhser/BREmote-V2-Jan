@@ -118,17 +118,9 @@ bool forceUpdateWebUiInSPIFFS();
 String getInstalledWebUiVersion();
 String getTargetWebUiVersion();
 
-void webCfgInit();
-void webCfgLoop();
-String webCfgGetStateLine();
-String webCfgGetLastError();
-String webCfgGetDebugModeName();
-bool webCfgSetDebugMode(const String& modeName);
-uint32_t webCfgGetStartupTimeoutMs();
-bool webCfgSetStartupTimeoutMs(uint32_t timeoutMs);
+#include "../Common/WebConfigEngine.h"
+
 void webCfgNotifyRxConnected();
-void webCfgEnableService();
-void webCfgDisableService();
 
 //Telemetry to send, MUST BE 8-bit!!
 struct __attribute__((packed)) TelemetryPacket {

@@ -233,18 +233,9 @@ String getTargetWebUiVersion();
 
 #include "../Common/ConfigServiceEngine.h"
 #include "../Common/RadioCommon.h"
+#include "../Common/WebConfigEngine.h"
 
-void webCfgInit();
-void webCfgLoop();
-String webCfgGetStateLine();
-String webCfgGetLastError();
-String webCfgGetDebugModeName();
-bool webCfgSetDebugMode(const String& modeName);
-uint32_t webCfgGetStartupTimeoutMs();
-bool webCfgSetStartupTimeoutMs(uint32_t timeoutMs);
 void webCfgNotifyTxUnlocked();
-void webCfgEnableService();
-void webCfgDisableService();
 
 /* 
 ** Defines
