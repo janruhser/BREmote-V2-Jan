@@ -17,9 +17,10 @@
 //     type 3 = radio init failed
 //   void radioInitSuccess();
 
-// Forward declarations — defined per-side in Radio.ino.
+// Forward declarations — defined per-side in Radio.ino / main .ino.
 void radioErrorHalt(int type);
 void radioInitSuccess();
+extern SX1262 radio;
 
 static int initRadioHardware()
 {
