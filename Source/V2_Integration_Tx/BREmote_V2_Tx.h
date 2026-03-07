@@ -226,13 +226,9 @@ volatile uint8_t web_cfg_debug_mode = 1; // 0=off, 1=some, 2=full
 volatile uint32_t web_cfg_ap_startup_timeout_ms = 120000; // 0 disables timeout
 String web_cfg_last_err = "";
 
-bool ensureWebUiInSPIFFS();
-bool forceUpdateWebUiInSPIFFS();
-String getInstalledWebUiVersion();
-String getTargetWebUiVersion();
-
 #include "../Common/ConfigServiceEngine.h"
 #include "../Common/RadioCommon.h"
+#include "../Common/SPIFFSEngine.h"
 #include "../Common/WebConfigEngine.h"
 
 void webCfgNotifyTxUnlocked();

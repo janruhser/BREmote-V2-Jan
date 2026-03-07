@@ -112,12 +112,9 @@ volatile uint32_t web_cfg_req_err = 0;
 volatile uint8_t web_cfg_debug_mode = 1; // 0=off, 1=some, 2=full
 volatile uint32_t web_cfg_ap_startup_timeout_ms = 120000; // 0 disables timeout
 String web_cfg_last_err = "";
+volatile bool config_version_error = false;
 
-bool ensureWebUiInSPIFFS();
-bool forceUpdateWebUiInSPIFFS();
-String getInstalledWebUiVersion();
-String getTargetWebUiVersion();
-
+#include "../Common/SPIFFSEngine.h"
 #include "../Common/WebConfigEngine.h"
 
 void webCfgNotifyRxConnected();
@@ -154,7 +151,6 @@ SemaphoreHandle_t triggerReceiveSemaphore;
 */
 volatile bool rfInterrupt = false;
 volatile bool rxIsrState = 0;
-volatile bool config_version_error = false;
 
 volatile int unpairedBlink = 0;
 
