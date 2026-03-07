@@ -8,7 +8,7 @@
 //   - CONF_FILE_PATH global declared
 //   - SW_VERSION constant defined
 //   - config_version_error global declared
-//   - esp_crc8() available
+//   - esp_crc8() available (from SystemCommon.h or forward-declared)
 //   - cfgValidateCrossField(), validateConfig() from ConfigServiceEngine.h
 //
 // Each side must define (in its own SPIFFS.ino):

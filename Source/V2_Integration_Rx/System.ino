@@ -1,58 +1,4 @@
-void enterSetup()
-{
-  Serial.begin(115200);
-  delay(100);
-  Serial.println("");
-  Serial.println("Entering Setup...");
-
-  Serial.println("**************************************");
-  Serial.println("**          BREmote V2 RX           **");
-  Serial.printf("**        MAC: %012llX         **\n", ESP.getEfuseMac());
-  Serial.printf("**          SW Version: %-10d  **\n", SW_VERSION);
-  Serial.printf("**  Compiled: %s %s  **\n", __DATE__, __TIME__);
-  Serial.println("**************************************");
-}
-
-void exitSetup()
-{
-  Serial.println("");
-  Serial.println("...Leaving Setup");
-  Serial.println("");
-}
-
-void printHexArray(const uint8_t* buffer, size_t size) {
-  if (buffer == nullptr || size == 0) {
-    return;
-  }
-  for (size_t i = 0; i < size; i++) {
-    // Print leading zero for values less than 0x10
-    if (buffer[i] < 0x10) {
-      Serial.print("0");
-    }
-    Serial.print(buffer[i], HEX);
-    // Add space between bytes (except after the last one)
-    if (i < size - 1) {
-      Serial.print(" ");
-    }
-  }
-  // Add newline at the end
-  Serial.println();
-}
-
-uint8_t esp_crc8(uint8_t *data, uint8_t length) {
-    uint8_t crc = 0xFF;
-    for (uint8_t i = 0; i < length; i++) {
-        crc ^= data[i];
-        for (uint8_t j = 0; j < 8; j++) {
-            if (crc & 0x80) {
-                crc = (crc << 1) ^ 0x31;
-            } else {
-                crc <<= 1;
-            }
-        }
-    }
-    return crc;
-}
+const char* SYS_DEVICE_LABEL = "RX";
 
 void startupAW()
 {
@@ -208,7 +154,7 @@ void blinkBind(int num)
   }
 }
 
-// ===== Serial Command Handlers =====
+// ===== RX-Specific Command Handlers =====
 
 struct SerialCommand {
   const char* name;
@@ -216,88 +162,11 @@ struct SerialCommand {
   void (*handler)(const String& params);
 };
 
-void cmdConf(const String& params) { 
-  if (params.equalsIgnoreCase("json")) {
-    String json;
-    if (cfgGetAllJson(json)) {
-      Serial.println(json);
-    } else {
-      Serial.println("ERR: Failed to generate JSON");
-    }
-  } else {
-    serPrintConf(); 
-  }
-}
 void cmdSetConf(const String& params) { serSetConf(params); }
 void cmdSetBC(const String& params) { serSetBC(params); }
-void cmdSet(const String& params) {
-  // Support both "key value" and "key=value" formats
-  int spacePos = params.indexOf(' ');
-  int eqPos = params.indexOf('=');
-  String key, value;
-  if (spacePos > 0 && (eqPos < 0 || spacePos < eqPos)) {
-    key = params.substring(0, spacePos);
-    value = params.substring(spacePos + 1);
-  } else if (eqPos > 0) {
-    key = params.substring(0, eqPos);
-    value = params.substring(eqPos + 1);
-  }
-  key.trim();
-  value.trim();
-  if (key.length() > 0 && value.length() > 0) {
-    String err;
-    bool radioReinit = false;
-    if(cfgSetValueByKey(key, value, err, radioReinit))
-    {
-      String readback, rerr;
-      cfgGetValueByKey(key, readback, rerr);
-      Serial.print("OK "); Serial.print(key); Serial.print("="); Serial.println(readback);
-      if(radioReinit) Serial.println("NOTE: radio reinit required (?reboot)");
-    }
-    else
-    {
-      Serial.print("ERR: "); Serial.println(err);
-    }
-  } else {
-    Serial.println("ERROR: Invalid format, use ?set <key> <value> or ?set <key>=<value>");
-  }
-}
-void cmdGet(const String& params) {
-  if(params.length() == 0) { Serial.println("ERR: usage: ?get <key>"); return; }
-  String key = params;
-  String val, err;
-  if(cfgGetValueByKey(key, val, err))
-  {
-    Serial.print(key); Serial.print("="); Serial.println(val);
-  }
-  else
-  {
-    Serial.print("ERR: "); Serial.println(err);
-  }
-}
-void cmdKeys(const String& params) {
-  for(size_t i = 0; i < kCfgFieldCount; i++)
-  {
-    Serial.println(kCfgFields[i].key);
-  }
-}
 void cmdClearConf(const String& params) { serClearConf(); }
 void cmdClearBC(const String& params) { serClearBC(); }
 void cmdApplyConf(const String& params) { serApplyConf(); }
-void cmdSave(const String& params) {
-  String err;
-  if (!cfgValidateCrossField(usrConf, err)) {
-    Serial.println("ERR: cross-validation failed: " + err);
-    return;
-  }
-  if (!validateConfig(usrConf, err)) {
-    Serial.println("ERR: validation failed: " + err);
-    return;
-  }
-  saveConfToSPIFFS(usrConf);
-  Serial.println("OK config saved to SPIFFS");
-}
-void cmdReboot(const String& params) { Serial.println("Rebooting now..."); delay(1000); ESP.restart(); }
 void cmdPrintPWM(const String& params) { serPrintPWM(); }
 void cmdPrintRSSI(const String& params) { serPrintRSSI(); }
 void cmdPrintTasks(const String& params) { serPrintTasks(); }
@@ -307,76 +176,9 @@ void cmdPrintReceived(const String& params) { serPrintReceived(); }
 void cmdTestBG(const String& params) { readTelemetryUntilQuit(); }
 void cmdTestPercent(const String& params) { testPercent(); }
 
-// WiFi serial commands
-void cmdWifi(const String& params) {
-  if(params == "on")       { webCfgEnableService(); Serial.println("WiFi/AP config service enabled."); }
-  else if(params == "off") { webCfgDisableService(); Serial.println("WiFi/AP config service disabled."); }
-  else if(params == "")    { Serial.print("wifi="); Serial.println(web_cfg_service_enabled ? "ON" : "OFF"); }
-  else                     Serial.println("ERR: usage: ?wifi on|off");
-}
-void cmdWifiDbg(const String& params) {
-  if(params == "") {
-    Serial.print("wifidbg=");
-    Serial.println(webCfgGetDebugModeName());
-  }
-  else {
-    if(webCfgSetDebugMode(params))
-    {
-      Serial.print("wifidbg=");
-      Serial.println(webCfgGetDebugModeName());
-    }
-    else
-    {
-      Serial.println("ERR_WIFIDBG_MODE");
-    }
-  }
-}
-void cmdWifiPs(const String& params) {
-  if(params == "") {
-    Serial.print("wifips_ms=");
-    Serial.println(webCfgGetStartupTimeoutMs());
-  }
-  else if(params.equalsIgnoreCase("off")) {
-    if(webCfgSetStartupTimeoutMs(0)) Serial.println("wifips_ms=0");
-    else Serial.println("ERR_WIFIPS_VALUE");
-  }
-  else {
-    long ms = params.toInt();
-    bool isDigitsOnly = params.length() > 0;
-    for(size_t i = 0; i < params.length(); i++)
-    {
-      if(!isDigit((unsigned char)params[i])) { isDigitsOnly = false; break; }
-    }
-    if(!isDigitsOnly || ms < 0 || !webCfgSetStartupTimeoutMs((uint32_t)ms)) Serial.println("ERR_WIFIPS_VALUE");
-    else { Serial.print("wifips_ms="); Serial.println(ms); }
-  }
-}
 void cmdWifiStop(const String& params) {
   webCfgNotifyRxConnected();
   Serial.println("RX connected notified: AP will stop.");
-}
-void cmdWifiVer(const String& params) {
-  Serial.print("ui_target=");
-  Serial.println(getTargetWebUiVersion());
-  Serial.print("ui_installed=");
-  Serial.println(getInstalledWebUiVersion());
-}
-void cmdWifiUpd(const String& params) {
-  if(forceUpdateWebUiInSPIFFS())
-  {
-    Serial.print("UI updated to ");
-    Serial.println(getTargetWebUiVersion());
-  }
-  else
-  {
-    Serial.println("ERR_UI_UPDATE");
-  }
-}
-void cmdWifiState(const String& params) {
-  Serial.println(webCfgGetStateLine());
-}
-void cmdWifiErr(const String& params) {
-  Serial.println(webCfgGetLastError());
 }
 
 void cmdHelp(const String& params);
@@ -578,16 +380,7 @@ void serPrintBat()
 {
   while (true)
   {
-    if (Serial.available() > 0) {
-        String input = Serial.readStringUntil('\n'); // Read the input command
-        input.trim(); // Remove any whitespace or newline characters
-
-        // If the received command matches the stop command, exit the loop
-        if (input.equals("quit")) {
-            Serial.println("Stopping print loop.");
-            break;
-        }
-    }
+    if(checkSerialQuit()) break;
 
     if(usrConf.data_src == 1)
     {
@@ -632,43 +425,13 @@ void serPrintBat()
   }
 }
 
-void serApplyConf()
-{
-  Serial.print("Reading conf from SPIFFS and applying to usrConf");
-  readConfFromSPIFFS(usrConf);
-}
-
-void serSetConf(String data) {
-  Serial.print("Setting configuration to: ");
-  Serial.println(data);
-
-  uint8_t* encodedData = new uint8_t[data.length()];
-  // Call the function to fill the encodedData array
-  for (size_t i = 0; i < data.length(); i++) {
-    encodedData[i] = data[i];  // Convert each character to uint8_t
-  }
-
-  // Save to SPIFFS
-  File file = SPIFFS.open(CONF_FILE_PATH, FILE_WRITE);
-  if (!file) {
-      Serial.println("Failed to open file for writing");
-      delete[] encodedData;
-      return;
-  }
-  file.write(encodedData, data.length());
-  file.close();
-  Serial.println("Struct saved to SPIFFS as Base64");
-  delete[] encodedData;
-}
-
 void serSetBC(String data) {
   Serial.print("Setting batcal to: ");
   Serial.println(data);
 
   uint8_t* encodedData = new uint8_t[data.length()];
-  // Call the function to fill the encodedData array
   for (size_t i = 0; i < data.length(); i++) {
-    encodedData[i] = data[i];  // Convert each character to uint8_t
+    encodedData[i] = data[i];
   }
 
   // Save to SPIFFS
@@ -684,12 +447,6 @@ void serSetBC(String data) {
   delete[] encodedData;
 }
 
-void serClearConf()
-{
-  Serial.println("Deleting conf from SPIFFS");
-  deleteConfFromSPIFFS();
-}
-
 void serClearBC()
 {
   Serial.println("Deleting batcal from SPIFFS");
@@ -700,16 +457,7 @@ void serPrintTasks()
 {
   while (true)
   {
-    if (Serial.available() > 0) {
-        String input = Serial.readStringUntil('\n'); // Read the input command
-        input.trim(); // Remove any whitespace or newline characters
-
-        // If the received command matches the stop command, exit the loop
-        if (input.equals("quit")) {
-            Serial.println("Stopping print loop.");
-            break;
-        }
-    }
+    if(checkSerialQuit()) break;
 
     Serial.println("\n=== Task Stack Usage ===");
 
@@ -728,18 +476,7 @@ void serPrintRSSI()
 {
   while (true)
   {
-    //checkForPacket();
-    // Check if data is available on Serial
-    if (Serial.available() > 0) {
-        String input = Serial.readStringUntil('\n'); // Read the input command
-        input.trim(); // Remove any whitespace or newline characters
-
-        // If the received command matches the stop command, exit the loop
-        if (input.equals("quit")) {
-            Serial.println("Stopping print loop.");
-            break;
-        }
-    }
+    if(checkSerialQuit()) break;
 
     // Print the variable
     if(millis() - last_packet < usrConf.failsafe_time)
@@ -762,18 +499,7 @@ void serPrintPWM()
 {
   while (true)
   {
-    //checkForPacket();
-    // Check if data is available on Serial
-    if (Serial.available() > 0) {
-        String input = Serial.readStringUntil('\n'); // Read the input command
-        input.trim(); // Remove any whitespace or newline characters
-
-        // If the received command matches the stop command, exit the loop
-        if (input.equals("quit")) {
-            Serial.println("Stopping print loop.");
-            break;
-        }
-    }
+    if(checkSerialQuit()) break;
 
     // Print the variable
     Serial.print(PWM0_time);
@@ -787,16 +513,7 @@ void serPrintReceived()
 {
   while (true)
   {
-    // Check if data is available on Serial
-    if (Serial.available() > 0) {
-        String input = Serial.readStringUntil('\n');
-        input.trim();
-
-        if (input.equals("quit")) {
-            Serial.println("Stopping print loop.");
-            break;
-        }
-    }
+    if(checkSerialQuit()) break;
 
     // Print received throttle/steering in JSON format for test correlation
     Serial.print("{\"throttle\":");
@@ -811,30 +528,6 @@ void serPrintReceived()
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }
-}
-
-void serPrintConf()
-{
-  Serial.println("**************************************");
-  Serial.println("**          BREmote V2 RX           **");
-  Serial.printf("**        MAC: %012llX         **\n", ESP.getEfuseMac());
-  Serial.printf("**          SW Version: %-10d  **\n", SW_VERSION);
-  Serial.printf("**  Compiled: %s %s  **\n", __DATE__, __TIME__);
-  Serial.println("**************************************");
-
-  // Read file from SPIFFS
-  File file = SPIFFS.open(CONF_FILE_PATH, FILE_READ);
-  if (!file) {
-      Serial.println("Failed to open file for reading");
-  }
-  else
-  {
-    String encodedString = file.readString();
-    Serial.println("Encoded Data Read: " + encodedString);
-    file.close();
-  }
-
-  printConfStruct(usrConf);
 }
 
 void checkButtons()
@@ -905,20 +598,4 @@ void checkConnStatus(void *parameter)
     }
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
-}
-
-void printConfStruct(const confStruct &data) {
-    Serial.println("Configuration Struct Values:");
-    // Use the config engine to print all fields
-    for (size_t i = 0; i < kCfgFieldCount; i++)
-    {
-      String val;
-      if (cfgReadFieldValue(data, kCfgFields[i], val))
-      {
-        Serial.print(kCfgFields[i].key);
-        Serial.print(": ");
-        Serial.println(val);
-      }
-    }
-    Serial.println("----------------------");
 }

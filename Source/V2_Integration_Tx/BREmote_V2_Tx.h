@@ -309,5 +309,6 @@ uint8_t col_mapper[] = { 1,2,4,3,5,6,7 };
 #include "../Common/RadioCommon.h"
 #include "../Common/SPIFFSEngine.h"
 #include "../Common/WebConfigEngine.h"
+#include "../Common/SystemCommon.h"
 
 void webCfgNotifyTxUnlocked();
