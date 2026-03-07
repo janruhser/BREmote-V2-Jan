@@ -227,13 +227,8 @@ volatile uint32_t web_cfg_ap_startup_timeout_ms = 120000; // 0 disables timeout
 String web_cfg_last_err = "";
 
 #include "../Common/ConfigServiceEngine.h"
-#include "../Common/RadioCommon.h"
-#include "../Common/SPIFFSEngine.h"
-#include "../Common/WebConfigEngine.h"
 
-void webCfgNotifyTxUnlocked();
-
-/* 
+/*
 ** Defines
 */
 #define ADS1115_ADDRESS 0x48
@@ -310,3 +305,9 @@ uint8_t row_mapper[] = { 8,9,7,5,6,3,4,2,0,1 };
 uint8_t col_mapper[] = { 1,2,4,3,5,6,7 };
 //uint8_t row_mapper[] = { 1,0,2,4,3,6,5,7,9,8 };
 //uint8_t col_mapper[] = { 7,6,4,5,3,2,1 };
+
+#include "../Common/RadioCommon.h"
+#include "../Common/SPIFFSEngine.h"
+#include "../Common/WebConfigEngine.h"
+
+void webCfgNotifyTxUnlocked();

@@ -100,7 +100,6 @@ confStruct usrConf;
 confStruct defaultConf = {SW_VERSION, 1, 0, 0, 50, 0, 0, 1500, 2000, 1500, 2000, 1000, 10, 0, 1, 0, 0, 0, 0, 0, 25.0f, 10.0f, 10.0f, 5.0f, 35.0f, 45.0f, 45.0f, 0.0095554f, 0.0, 1000, 1, 0, {0, 0, 0}, {0, 0, 0}, {'1','2','3','4','5','6','7','8'}};
 
 #include "../Common/ConfigServiceEngine.h"
-#include "../Common/RadioCommon.h"
 
 // Web config globals
 volatile bool web_cfg_service_enabled = false;
@@ -255,3 +254,5 @@ unsigned long percent_last_thr_change = 0;
 #define VESC_DEBUG_PRINT(x)
 #define VESC_DEBUG_PRINTLN(x)
 #endif
+
+#include "../Common/RadioCommon.h"
