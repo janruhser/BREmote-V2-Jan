@@ -11,6 +11,25 @@ from dataclasses import asdict
 from . import BREmoteTester, TestResult
 
 
+def _describe_link_quality(packet_loss: float) -> str:
+    if packet_loss <= 1.0:
+        return "Excellent link stability"
+    if packet_loss <= 5.0:
+        return "Good link stability"
+    if packet_loss <= 20.0:
+        return "Marginal link stability"
+    return "Poor link stability (likely noticeable dropouts)"
+
+
+def _describe_value_consistency(thr_diff: float, steer_diff: float) -> str:
+    worst = max(thr_diff, steer_diff)
+    if worst <= 2.0:
+        return "TX/RX values are tightly aligned"
+    if worst <= 5.0:
+        return "TX/RX values are acceptable with minor drift"
+    return "TX/RX values show significant mismatch"
+
+
 def main():
     parser = argparse.ArgumentParser(description='BREmote V2 Hardware Test Suite')
     parser.add_argument('--port', help='Specific COM port to test')
@@ -36,11 +55,35 @@ def main():
             result = tester.run_integration_test(duration=args.duration)
             link = result.get('radio_link_test', {})
             if link:
-                print(f"Result: {link.get('result', 'N/A')}")
-                print(f"Packet Loss: {link.get('packet_loss_percent', 0):.1f}%")
-                print(f"Matched Pairs: {link.get('matched_pairs', 0)}")
+                status = link.get('result', 'N/A')
+                packet_loss = float(link.get('packet_loss_percent', 0) or 0)
+                matched_pairs = int(link.get('matched_pairs', 0) or 0)
+                tx_samples = int(link.get('tx_samples', 0) or 0)
+                avg_thr_diff = float(link.get('avg_throttle_diff', 0) or 0)
+                avg_steer_diff = float(link.get('avg_steering_diff', 0) or 0)
+                avg_rssi = link.get('avg_rssi_dbm')
+
+                print(f"Result: {status}")
+                if status == TestResult.PASS.value:
+                    print("Interpretation: Radio link test passed. TX->RX data path is healthy.")
+                elif status == TestResult.FAIL.value:
+                    print("Interpretation: Radio link test failed. Review loss/mismatch details below.")
+
+                print(
+                    f"Packet Loss: {packet_loss:.1f}% "
+                    f"({_describe_link_quality(packet_loss)})"
+                )
+                print(f"Matched Pairs: {matched_pairs} of {tx_samples} TX samples")
+                print(
+                    f"Value Consistency: throttle diff {avg_thr_diff:.2f}, "
+                    f"steering diff {avg_steer_diff:.2f} "
+                    f"({_describe_value_consistency(avg_thr_diff, avg_steer_diff)})"
+                )
+                if avg_rssi is not None:
+                    print(f"Signal: average RSSI {avg_rssi:.1f} dBm")
+
                 details = link.get('details', '')
-                if details and 'working correctly' not in details:
+                if details:
                     print(f"Details: {details}")
         elif args.interactive:
             print("\n[INTERACTIVE] Running Interactive Tests...")

@@ -284,7 +284,19 @@ void cmdKeys(const String& params) {
 void cmdClearConf(const String& params) { serClearConf(); }
 void cmdClearBC(const String& params) { serClearBC(); }
 void cmdApplyConf(const String& params) { serApplyConf(); }
-void cmdSave(const String& params) { saveConfToSPIFFS(usrConf); Serial.println("OK config saved to SPIFFS"); }
+void cmdSave(const String& params) {
+  String err;
+  if (!cfgValidateCrossField(usrConf, err)) {
+    Serial.println("ERR: cross-validation failed: " + err);
+    return;
+  }
+  if (!validateConfig(usrConf, err)) {
+    Serial.println("ERR: validation failed: " + err);
+    return;
+  }
+  saveConfToSPIFFS(usrConf);
+  Serial.println("OK config saved to SPIFFS");
+}
 void cmdReboot(const String& params) { Serial.println("Rebooting now..."); delay(1000); ESP.restart(); }
 void cmdPrintPWM(const String& params) { serPrintPWM(); }
 void cmdPrintRSSI(const String& params) { serPrintRSSI(); }

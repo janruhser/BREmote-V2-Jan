@@ -91,13 +91,13 @@ struct confStruct {
     uint16_t paired;
     uint8_t own_address[3];
     uint8_t dest_address[3];
-    char wifi_password[8];  // WPA2 AP password, exactly 8 chars
+    char wifi_password[8];  // WPA2 AP password, exactly 8 chars (no null terminator)
 
 };
 
 static_assert(sizeof(confStruct) >= 88, "confStruct shrunk below V2 baseline");
 confStruct usrConf;
-confStruct defaultConf = {SW_VERSION, 1, 0, 0, 50, 0, 0, 1500, 2000, 1500, 2000, 1000, 10, 0, 1, 0, 0, 0, 0, 0, 25.0f, 10.0f, 10.0f, 5.0f, 35.0f, 45.0f, 45.0f, 0.0095554f, 0.0, 1000, 1, 0, {0, 0, 0}, {0, 0, 0}, "12345678"};
+confStruct defaultConf = {SW_VERSION, 1, 0, 0, 50, 0, 0, 1500, 2000, 1500, 2000, 1000, 10, 0, 1, 0, 0, 0, 0, 0, 25.0f, 10.0f, 10.0f, 5.0f, 35.0f, 45.0f, 45.0f, 0.0095554f, 0.0, 1000, 1, 0, {0, 0, 0}, {0, 0, 0}, {'1','2','3','4','5','6','7','8'}};
 
 #include "../Common/ConfigServiceEngine.h"
 

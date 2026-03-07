@@ -314,6 +314,15 @@ void cmdSet(const String &args) {
 }
 
 void cmdSave(const String &args) {
+  String err;
+  if (!cfgValidateCrossField(usrConf, err)) {
+    Serial.println("ERR: cross-validation failed: " + err);
+    return;
+  }
+  if (!validateConfig(usrConf, err)) {
+    Serial.println("ERR: validation failed: " + err);
+    return;
+  }
   saveConfToSPIFFS(usrConf);
   Serial.println("OK config saved to SPIFFS");
 }
@@ -917,55 +926,65 @@ void checkCharger()
 
 void printConfStruct(const confStruct &data) {
     Serial.println("Configuration Struct Values:");
-    Serial.print("Version: "); Serial.println(data.version);
+    Serial.print("Version (version): "); Serial.println(data.version);
 
-    Serial.print("Radio Preset: "); Serial.println(data.radio_preset);
-    Serial.print("RF Power: "); Serial.println(data.rf_power);
+    Serial.print("Radio Preset (radio_preset): "); Serial.println(data.radio_preset);
+    Serial.print("RF Power (rf_power): "); Serial.println(data.rf_power);
 
-    Serial.print("Calibration OK: "); Serial.println(data.cal_ok);
-    Serial.print("Calibration Offset: "); Serial.println(data.cal_offset);
+    Serial.print("Calibration OK (cal_ok): "); Serial.println(data.cal_ok);
+    Serial.print("Calibration Offset (cal_offset): "); Serial.println(data.cal_offset);
 
-    Serial.print("Throttle Idle: "); Serial.println(data.thr_idle);
-    Serial.print("Throttle Pull: "); Serial.println(data.thr_pull);
+    Serial.print("Throttle Idle (thr_idle): "); Serial.println(data.thr_idle);
+    Serial.print("Throttle Pull (thr_pull): "); Serial.println(data.thr_pull);
 
-    Serial.print("Toggle Left: "); Serial.println(data.tog_left);
-    Serial.print("Toggle Middle: "); Serial.println(data.tog_mid);
-    Serial.print("Toggle Right: "); Serial.println(data.tog_right);
+    Serial.print("Toggle Left (tog_left): "); Serial.println(data.tog_left);
+    Serial.print("Toggle Middle (tog_mid): "); Serial.println(data.tog_mid);
+    Serial.print("Toggle Right (tog_right): "); Serial.println(data.tog_right);
 
-    Serial.print("Toggle Deadzone: "); Serial.println(data.tog_deadzone);
-    Serial.print("Toggle Difference: "); Serial.println(data.tog_diff);
-    Serial.print("Toggle Block Time: "); Serial.println(data.tog_block_time);
-    
-    Serial.print("Trigger Unlock Timeout: "); Serial.println(data.trig_unlock_timeout);
-    Serial.print("Lock Wait Time: "); Serial.println(data.lock_waittime);
-    Serial.print("Gear Change Wait Time: "); Serial.println(data.gear_change_waittime);
-    Serial.print("Gear Display Time: "); Serial.println(data.gear_display_time);
-    Serial.print("Menu Timeout: "); Serial.println(data.menu_timeout);
-    Serial.print("Error Delete Time: "); Serial.println(data.err_delete_time);
+    Serial.print("Toggle Deadzone (tog_deadzone): "); Serial.println(data.tog_deadzone);
+    Serial.print("Toggle Difference (tog_diff): "); Serial.println(data.tog_diff);
+    Serial.print("Toggle Block Time (tog_block_time): "); Serial.println(data.tog_block_time);
 
-    Serial.print("No Lock: "); Serial.println(data.no_lock);
-    Serial.print("Throttle Mode: "); Serial.println(data.throttle_mode);
-    Serial.print("Dynamic Power Start: "); Serial.println(data.dynamic_power_start);
-    Serial.print("Dynamic Power Step: "); Serial.println(data.dynamic_power_step);
+    Serial.print("Trigger Unlock Timeout (trig_unlock_timeout): "); Serial.println(data.trig_unlock_timeout);
+    Serial.print("Lock Wait Time (lock_waittime): "); Serial.println(data.lock_waittime);
+    Serial.print("Gear Change Wait Time (gear_change_waittime): "); Serial.println(data.gear_change_waittime);
+    Serial.print("Gear Display Time (gear_display_time): "); Serial.println(data.gear_display_time);
+    Serial.print("Menu Timeout (menu_timeout): "); Serial.println(data.menu_timeout);
+    Serial.print("Error Delete Time (err_delete_time): "); Serial.println(data.err_delete_time);
+
+    Serial.print("No Lock (no_lock): "); Serial.println(data.no_lock);
+    Serial.print("Throttle Mode (throttle_mode): "); Serial.println(data.throttle_mode);
+    Serial.print("Throttle Expo (thr_expo): "); Serial.println(data.thr_expo);
+    Serial.print("Throttle Expo1 (thr_expo1): "); Serial.println(data.thr_expo1);
+    Serial.print("Steer Expo (steer_expo): "); Serial.println(data.steer_expo);
+    Serial.print("Steer Expo1 (steer_expo1): "); Serial.println(data.steer_expo1);
+    Serial.print("Dynamic Power Start (dynamic_power_start): "); Serial.println(data.dynamic_power_start);
+    Serial.print("Dynamic Power Step (dynamic_power_step): "); Serial.println(data.dynamic_power_step);
     {
       char wp[9]; memcpy(wp, data.wifi_password, 8); wp[8] = '\0';
-      Serial.print("WiFi Password: "); Serial.println(wp);
+      Serial.print("WiFi Password (wifi_password): "); Serial.println(wp);
     }
-    Serial.print("Max Gears: "); Serial.println(data.max_gears);
-    Serial.print("Start Gear: "); Serial.println(data.startgear);
-    Serial.print("Steer Enabled: "); Serial.println(data.steer_enabled);
+    Serial.print("Max Gears (max_gears): "); Serial.println(data.max_gears);
+    Serial.print("Start Gear (startgear): "); Serial.println(data.startgear);
+    Serial.print("Steer Enabled (steer_enabled): "); Serial.println(data.steer_enabled);
 
-    Serial.print("Battery Calibration (Ubat Cal): "); Serial.println(data.ubat_cal, 15); // Floating-point precision
+    Serial.print("Battery Cal (ubat_cal): "); Serial.println(data.ubat_cal, 15);
 
-    Serial.print("Paired: "); Serial.println(data.paired);
+    Serial.print("GPS Enabled (gps_en): "); Serial.println(data.gps_en);
+    Serial.print("Follow-Me Mode (followme_mode): "); Serial.println(data.followme_mode);
+    Serial.print("Kalman Enabled (kalman_en): "); Serial.println(data.kalman_en);
+    Serial.print("Speed Source (speed_src): "); Serial.println(data.speed_src);
+    Serial.print("TX GPS Stale Timeout (tx_gps_stale_timeout_ms): "); Serial.println(data.tx_gps_stale_timeout_ms);
 
-    Serial.print("Own Address: ");
+    Serial.print("Paired (paired): "); Serial.println(data.paired);
+
+    Serial.print("Own Address (own_address): ");
     for (int i = 0; i < 3; i++) {
         Serial.print(data.own_address[i], HEX);
         Serial.print(i < 2 ? ":" : "\n");
     }
 
-    Serial.print("Destination Address: ");
+    Serial.print("Dest Address (dest_address): ");
     for (int i = 0; i < 3; i++) {
         Serial.print(data.dest_address[i], HEX);
         Serial.print(i < 2 ? ":" : "\n");

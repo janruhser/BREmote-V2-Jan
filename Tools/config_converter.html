@@ -106,7 +106,7 @@ const U16   = 'u16';
 const I16   = 'i16';
 const FLOAT = 'float';
 const ADDR3 = 'u8_3'; // uint8_t[3]
-const STR8  = 'str8'; // char[8]
+const STR8  = 'str8'; // char[8] (no null terminator)
 
 function fieldSize(type) {
     switch (type) {
@@ -392,7 +392,11 @@ function readField(dv, offset, type) {
         case ADDR3: return [dv.getUint8(offset), dv.getUint8(offset+1), dv.getUint8(offset+2)];
         case STR8: {
             let s = '';
-            for (let i = 0; i < 8; i++) s += String.fromCharCode(dv.getUint8(offset + i));
+            for (let i = 0; i < 8; i++) {
+                const c = dv.getUint8(offset + i);
+                if (c === 0) break;
+                s += String.fromCharCode(c);
+            }
             return s;
         }
     }
@@ -577,7 +581,7 @@ function updateSizeLabels() {
 // ── Update available version options based on device ──
 function updateVersionOptions() {
     const device = document.getElementById('device').value;
-    const maxV = device === 'tx' ? 3 : 2;
+    const maxV = 3;
 
     for (const selId of ['srcVersion', 'tgtVersion']) {
         const sel = document.getElementById(selId);

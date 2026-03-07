@@ -139,6 +139,13 @@ bool readConfFromSPIFFS(confStruct& data) {
     memcpy(&data, decodedData, sizeof(confStruct));
     delete[] decodedData;
 
+    // Clamp cross-dependent fields before range validation
+    String crossErr;
+    if (!cfgValidateCrossField(data, crossErr)) {
+        Serial.println("Config cross-validation failed: " + crossErr);
+        return false;
+    }
+
     // Validate config values against their ranges (uses shared engine)
     String validationErr;
     if (!validateConfig(data, validationErr)) {

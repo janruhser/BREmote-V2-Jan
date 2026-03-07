@@ -25,7 +25,7 @@ const char* CONF_FILE_PATH = "/data.txt";
 /*
 ** Structs
 */
-// NOTE: Not packed — sizeof is 80 due to 2 bytes tail padding (float forces 4-byte alignment).
+// NOTE: Not packed — sizeof is 92 (V3, was 80 in V2). Float forces 4-byte struct alignment.
 // Do not add __attribute__((packed)), it would break existing SPIFFS configs and the web config tool.
 struct confStruct {
     //Version
@@ -85,14 +85,14 @@ struct confStruct {
     uint16_t paired;
     uint8_t own_address[3];
     uint8_t dest_address[3];
-    char wifi_password[8];      // WPA2 AP password, exactly 8 chars
+    char wifi_password[8];      // WPA2 AP password, exactly 8 chars (no null terminator)
     uint16_t dynamic_power_start;  // 10-100, starting cap for mode 2 (default 85)
     uint16_t dynamic_power_step; // 1-25, step size per toggle press in mode 2 (default 5)
 };
 
 static_assert(sizeof(confStruct) >= 80, "confStruct shrunk below V2 baseline");
 confStruct usrConf;
-confStruct defaultConf = {SW_VERSION, 1, 0, 0, 100, 0, 0, 0, 0, 0, 500, 30, 500, 5000, 2000, 100, 1000, 10, 2000, 0, 0, 10, 0, 1, 50, 0, 50, 0, 0.000185662f, 0, 0, 0, 0, 1000, 0, {0, 0, 0}, {0, 0, 0}, "12345678", 85, 5};
+confStruct defaultConf = {SW_VERSION, 1, 0, 0, 100, 0, 0, 0, 0, 0, 500, 30, 500, 5000, 2000, 100, 1000, 10, 2000, 0, 0, 10, 0, 1, 50, 0, 50, 0, 0.000185662f, 0, 0, 0, 0, 1000, 0, {0, 0, 0}, {0, 0, 0}, {'1','2','3','4','5','6','7','8'}, 85, 5};
 
 
 //Telemetry to receive, MUST BE 8-bit!!

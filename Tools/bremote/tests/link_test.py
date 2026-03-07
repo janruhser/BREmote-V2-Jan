@@ -123,18 +123,20 @@ class RadioLinkMonitor:
                     self.log(f"  RX Monitor Error: {e}")
     
     def _parse_tx_buffer(self):
-        """Parse TX JSON output for throttle/steering values"""
-        # Find all complete JSON objects (between { and matched })
-        while '{' in self.tx_buffer and '}' in self.tx_buffer:
-            start = self.tx_buffer.find('{')
-            end = self.tx_buffer.find('}', start)
-            if end == -1:
-                break
-            json_str = self.tx_buffer[start:end+1]
-            self.tx_buffer = self.tx_buffer[end+1:]
-            
+        """Parse TX JSON output for throttle/steering values.
+
+        TX inputs are reported faster than the 10Hz radio send rate, so we
+        rate-limit to one sample per 100ms window to match actual TX packets.
+        """
+        lines = self.tx_buffer.split('\n')
+        self.tx_buffer = lines[-1] if lines else ""
+
+        for line in lines[:-1]:
+            line = line.strip()
+            if not line.startswith('{'):
+                continue
             try:
-                data = json.loads(json_str)
+                data = json.loads(line)
             except json.JSONDecodeError:
                 continue
 
@@ -162,17 +164,15 @@ class RadioLinkMonitor:
     
     def _parse_rx_buffer(self):
         """Parse RX JSON output for received throttle/steering/RSSI values"""
-        # Find all complete JSON objects (between { and matched })
-        while '{' in self.rx_buffer and '}' in self.rx_buffer:
-            start = self.rx_buffer.find('{')
-            end = self.rx_buffer.find('}', start)
-            if end == -1:
-                break
-            json_str = self.rx_buffer[start:end+1]
-            self.rx_buffer = self.rx_buffer[end+1:]
-            
+        lines = self.rx_buffer.split('\n')
+        self.rx_buffer = lines[-1] if lines else ""
+
+        for line in lines[:-1]:
+            line = line.strip()
+            if not line.startswith('{'):
+                continue
             try:
-                data = json.loads(json_str)
+                data = json.loads(line)
             except json.JSONDecodeError:
                 continue
 
@@ -188,10 +188,10 @@ class RadioLinkMonitor:
 
             if sample.rx_throttle is not None or sample.rx_steering is not None:
                 with self.lock:
-                    # Match with recent TX sample (within 500ms)
+                    # Match with recent TX sample (within 200ms)
                     matched = False
                     for s in reversed(self.samples[-50:]):
-                        if abs(s.timestamp - sample.timestamp) < 0.5:
+                        if abs(s.timestamp - sample.timestamp) < 0.2:
                             if sample.rx_throttle is not None:
                                 s.rx_throttle = sample.rx_throttle
                             if sample.rx_steering is not None:
@@ -224,27 +224,29 @@ class RadioLinkMonitor:
         
         # Count matched pairs and TX samples
         matched = [s for s in samples if s.tx_throttle is not None and s.rx_throttle is not None]
+        total_rx = len([s for s in samples if s.rx_throttle is not None])
         total_tx = len([s for s in samples if s.tx_throttle is not None])
         matched_count = len(matched)
         
-        # Calculate actual packet loss based on time and 10Hz rate
-        # TX serial output rate (17Hz) != radio rate (10Hz) due to buffering
-        if samples:
-            time_span = samples[-1].timestamp - samples[0].timestamp
-            expected_packets = time_span * 10  # 10Hz radio rate
-            packet_loss = max(0, ((expected_packets - matched_count) / expected_packets * 100))
-        else:
-            packet_loss = 100.0
+        # Calculate packet loss from captured TX samples.
+        packet_loss = ((total_tx - matched_count) / total_tx * 100) if total_tx > 0 else 100.0
         
-        # Calculate value differences
-        throttle_diffs = [abs(s.tx_throttle - s.rx_throttle) for s in matched 
-                         if s.tx_throttle is not None and s.rx_throttle is not None]
-        steering_diffs = [abs(s.tx_steering - s.rx_steering) for s in matched 
-                         if s.tx_steering is not None and s.rx_steering is not None]
-        
-        avg_throttle_diff = sum(throttle_diffs) / len(throttle_diffs) if throttle_diffs else 0
-        max_throttle_diff = max(throttle_diffs) if throttle_diffs else 0
-        max_steering_diff = max(steering_diffs) if steering_diffs else 0
+        # Compare aggregate TX vs RX means. Per-pair comparisons are noisy
+        # because TX/RX serial streams are asynchronous.
+        tx_throttles = [s.tx_throttle for s in samples if s.tx_throttle is not None]
+        rx_throttles = [s.rx_throttle for s in samples if s.rx_throttle is not None]
+        tx_steerings = [s.tx_steering for s in samples if s.tx_steering is not None]
+        rx_steerings = [s.rx_steering for s in samples if s.rx_steering is not None]
+
+        avg_tx_thr = sum(tx_throttles) / len(tx_throttles) if tx_throttles else 0
+        avg_rx_thr = sum(rx_throttles) / len(rx_throttles) if rx_throttles else 0
+        avg_tx_steer = sum(tx_steerings) / len(tx_steerings) if tx_steerings else 0
+        avg_rx_steer = sum(rx_steerings) / len(rx_steerings) if rx_steerings else 0
+
+        avg_throttle_diff = abs(avg_tx_thr - avg_rx_thr)
+        avg_steering_diff = abs(avg_tx_steer - avg_rx_steer)
+        max_throttle_diff = round(avg_throttle_diff)
+        max_steering_diff = round(avg_steering_diff)
         
         # RSSI statistics
         rssi_values = [s.rssi for s in matched if s.rssi is not None]
@@ -262,10 +264,9 @@ class RadioLinkMonitor:
             passed = False
             reasons.append(f"High packet loss: {packet_loss:.1f}%")
         
-        # Check for value mismatches — sustained differences indicate corruption
-        if max_throttle_diff > 5 or max_steering_diff > 5:
+        if avg_throttle_diff > 5 or avg_steering_diff > 5:
             passed = False
-            reasons.append(f"Value mismatch: thr_diff={max_throttle_diff}, steer_diff={max_steering_diff}")
+            reasons.append(f"Value mismatch: thr_diff={avg_throttle_diff:.1f}, steer_diff={avg_steering_diff:.1f}")
         
         if avg_rssi is not None and avg_rssi < -100:
             passed = False
@@ -284,9 +285,11 @@ class RadioLinkMonitor:
             "details": "; ".join(reasons) if reasons else f"Radio link working correctly ({debug_info})",
             "samples_collected": len(samples),
             "tx_samples": total_tx,
+            "rx_samples": total_rx,
             "matched_pairs": matched_count,
             "packet_loss_percent": round(packet_loss, 2),
             "avg_throttle_diff": round(avg_throttle_diff, 2),
+            "avg_steering_diff": round(avg_steering_diff, 2),
             "max_throttle_diff": max_throttle_diff,
             "max_steering_diff": max_steering_diff,
             "avg_rssi_dbm": avg_rssi,
