@@ -232,6 +232,7 @@ String getInstalledWebUiVersion();
 String getTargetWebUiVersion();
 
 #include "../Common/ConfigServiceEngine.h"
+#include "../Common/RadioCommon.h"
 
 void webCfgInit();
 void webCfgLoop();

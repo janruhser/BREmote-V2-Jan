@@ -23,74 +23,22 @@ bool isRadioActivityEnabled()
   return radio_activity_enabled;
 }
 
+void radioErrorHalt(int type)
+{
+  if(type == 1) while(1) scroll4Digits(LET_E, LET_H, LET_F, LET_P, 200);
+  if(type == 2) while(1) scroll4Digits(LET_E, LET_H, LET_F, LET_C, 200);
+  while(1) scroll4Digits(LET_E, LET_H, LET_F, LET_I, 200);
+}
+
+void radioInitSuccess()
+{
+  radio_driver_ready = true;
+  setRadioActivityEnabled(radio_activity_enabled);
+}
+
 void startupRadio()
 {
-  Serial.print("Starting Radio...");
-
-  SPI.begin(P_SPI_SCK, P_SPI_MISO, P_SPI_MOSI);
-
-  if(usrConf.rf_power < -9 || usrConf.rf_power > 22)
-  {
-    Serial.println("Error, invalid transmit power");
-    while(1) scroll4Digits(LET_E, LET_H, LET_F, LET_P, 200);
-  }
-
-  Serial.print(" Power: ");
-  Serial.print(usrConf.rf_power);
-
-  int state;
-
-  if(usrConf.radio_preset == 1)
-  {
-    Serial.print(" Region: EU868");
-    //869.4-869.65MHz, 10%TOA, 500mW
-    //Checked allowed in: EU, Switzerland
-                        //          5..12 5..8                                  -9..22             >=1
-                        //fc     bw    sf cr                                      pwr              pre tcxo  ldo
-    state = radio.begin(869.525, 250.0, 6, 7, RADIOLIB_SX126X_SYNC_WORD_PRIVATE, usrConf.rf_power, 8, 1.8, false);
-  }
-  else if(usrConf.radio_preset == 2)
-  {
-    //Reserved for US
-    Serial.print(" Region: US/AU915");
-                        //          5..12 5..8                                  -9..22             >=1
-                        //fc     bw    sf cr                                      pwr              pre tcxo  ldo
-    state = radio.begin(915.0, 250.0, 6, 7, RADIOLIB_SX126X_SYNC_WORD_PRIVATE, usrConf.rf_power, 8, 1.8, false);
-  }
-  else if (usrConf.radio_preset == 3)
-  {
-    //Reserved for other country
-    Serial.println("Error, unsupported HF setting");
-    while(1) scroll4Digits(LET_E, LET_H, LET_F, LET_C, 200);
-  }
-  else
-  {
-    //Invalid
-    Serial.println("Error, unsupported HF setting");
-    while(1) scroll4Digits(LET_E, LET_H, LET_F, LET_C, 200);
-  }
-
-  //radio.setCurrentLimit(60.0);
-  radio.setDio2AsRfSwitch(true);
-  radio.implicitHeader(4);
-  radio.setCRC(0);
-  radio.setRxBandwidth(250);
-
-  Serial.print(" TOA: ");
-  Serial.print(radio.getTimeOnAir(4));
-
-  if (state == RADIOLIB_ERR_NONE) 
-  {
-    radio_driver_ready = true;
-    setRadioActivityEnabled(radio_activity_enabled);
-    Serial.println(" Done");
-  } 
-  else 
-  {
-    Serial.print(" Failed, code: ");
-    Serial.println(state);
-    while (true) scroll4Digits(LET_E, LET_H, LET_F, LET_I, 200);
-  }
+  initRadioHardware();
 }
 
 void ICACHE_RAM_ATTR packetReceived(void) 
@@ -370,16 +318,4 @@ void waitForTelemetry(void *parameter)
   }
 }
 
-int getLinkQuality(float rssi, float snr) {
-  // Normalize RSSI: Expected range (-130 dBm to -50 dBm)
-  int rssiScore = constrain(map(rssi, -100, -50, 0, 10), 0, 10);
-
-  // Normalize SNR: Typical range (-20 dB to +10 dB)
-  int snrScore = constrain(map(snr, -10, 10, 0, 10), 0, 10);
-
-  // Weighted average (adjust weights as needed)
-  float combinedScore = (0.7 * rssiScore) + (0.3 * snrScore);
-
-  // Convert to integer and ensure it's in range 0-10
-  return constrain(round(combinedScore), 0, 10);
-}
+// getLinkQuality() is now in ../Common/RadioCommon.h
