@@ -23,6 +23,10 @@ extern const char* WEB_CFG_AP_SSID;
 extern const char* WEB_CFG_SHUTDOWN_REASON;
 void webCfgResetCalibration(confStruct& conf);
 
+// Forward declarations for functions defined later in this header.
+String webCfgGetStateLine();
+String webCfgGetLastError();
+
 // ===== Internal State =====
 
 static WebServer webCfgServer(80);

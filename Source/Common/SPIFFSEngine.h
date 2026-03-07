@@ -18,9 +18,10 @@
 //   void spiffsFormatNotify(bool starting);
 //     called before (true) and after (false) SPIFFS format
 
-// Forward declarations — defined per-side in SPIFFS.ino.
+// Forward declarations — defined per-side in SPIFFS.ino / System.ino.
 void spiffsErrorHalt(int type);
 void spiffsFormatNotify(bool starting);
+uint8_t esp_crc8(uint8_t *data, uint8_t length);
 
 // ===== WebUI Embedding =====
 
