@@ -1,169 +1,118 @@
-> **Fork of [Luddi96/BREmote-V2](https://github.com/Luddi96/BREmote-V2)** — This repository contains custom modifications and additional tooling on top of the original BREmote V2 project.
->
-> **This fork is highly experimental. Use at your own risk.**
+# BREmote V2 Fork
 
-<p align="center">
-  <img src="img/banner.png" alt="BREmote" width="600">
-</p>
+**Fork of [Luddi96/BREmote-V2](https://github.com/Luddi96/BREmote-V2)**
 
-<h3 align="center">Open-Source Wireless Remote for eFoils & Electric Skateboards</h3>
+This repository contains custom modifications and additional features. See the [original repository](https://github.com/Luddi96/BREmote-V2) for base documentation, hardware specs, and flashing instructions.
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#hardware">Hardware</a> •
-  <a href="#getting-started">Getting Started</a> •
-  <a href="#configuration">Configuration</a> •
-  <a href="#tools">Tools</a> •
-  <a href="#license">License</a>
-</p>
+## ⚠️ Experimental
 
-<p align="center">
-  <a href="https://raw.githack.com/janruhser/BREmote-V2-Jan/main/Tools/config_converter.html"><strong>Open Config Converter Tool</strong></a>
-</p>
+This fork is under active development. Use at your own risk.
 
 ---
 
-## Features
+## New Features in This Fork
 
-- **Long-range LoRa radio** — SX1262 at 868 MHz (EU) or 915 MHz (US/AU), 10 Hz control rate
-- **VESC compatible** — Direct UART interface with VESC motor controllers
-- **Dual-unit system** — Handheld transmitter (Tx) + board-mounted receiver (Rx)
-- **Real-time telemetry** — Battery, temperature, speed, and signal strength displayed on the remote
-- **Configurable throttle curves** — Exponential curve shaping from soft start to aggressive response
-- **Steering support** — Optional second axis for differential steering setups
-- **Multi-gear system** — Up to 5 configurable power levels
-- **Safety features** — Throttle lock, 5-minute failsafe deep sleep, toggle blocking during steering
-- **Over-the-air config** — WiFi Access Point with web-based configuration interface
-- **LED matrix display** — HT16K33 7x10 dot matrix for status, animations, and bargraphs
+### 🌐 WiFi Setup
+WiFi Access Point starts automatically at boot for wireless configuration:
+- Starts automatically on every power-on
+- Auto-generated password from device MAC address
+- Web interface for all settings
+- Auto-shutdown after configurable timeout if no client connects (default: 120s)
+- Can be manually controlled via serial `?wifi on/off`
 
-## Hardware
+### 🔌 Serial Setup (USB)
+Full configuration over USB serial without WiFi:
+- All settings accessible via serial commands
+- Works even when TX is locked
+- Compatible with automated tooling and scripts
 
-| Component | Tx (Remote) | Rx (Board) |
-|-----------|------------|------------|
-| MCU | ESP32 WROOM-32 | ESP32 WROOM-32 |
-| Radio | SX1262 LoRa | SX1262 LoRa |
-| ADC | ADS1115 16-bit | — |
-| Display | HT16K33 LED matrix | — |
-| Motor | — | VESC (UART) |
-| GPS | — | Optional NMEA module |
-| Input | Hall throttle + 2 toggles | Bind button |
+### 📊 JSON Config Export
+Machine-readable configuration output:
 
-## Getting Started
+```
+?conf       → Human-readable config (original)
+?conf json  → JSON format (NEW)
+```
 
-### Prerequisites
+Returns all configuration values as parseable JSON.
 
-- [Arduino IDE](https://www.arduino.cc/en/software) or PlatformIO
-- ESP32 board support package
-- Required libraries:
+### 🛠️ Config Converter Tool
+Browser-based configuration editor:
 
-| Library | Version |
-|---------|---------|
-| [RadioLib](https://github.com/jgromes/RadioLib) | 7.1.2 |
-| [Adafruit_ADS1X15](https://github.com/adafruit/Adafruit_ADS1X15) | 2.5.0 |
+**[Open Config Converter](Tools/config_converter.html)**
 
-### Build & Flash
+- Decode Base64 config strings from `?conf` output
+- Edit individual fields with validation
+- Re-encode and upload back to device
+- Works offline without device connection
 
-1. Open `Source/V2_Integration_Tx/V2_Integration_Tx.ino` (or `V2_Integration_Rx.ino` for the receiver) in Arduino IDE
-2. Select board: **ESP32 WROOM-32**
-3. Set upload speed to **921600 baud**
-4. Click Upload
+### 📺 Additional Display Info (TX)
+Extended telemetry display modes:
+- **Temperature** (T/P): Motor/controller temperature
+- **Speed** (5/P): GPS speed in km/h or knots  
+- **Power** (P/V): Power consumption in watts
+- **Battery** (B/A): Foil battery percentage
+- **Throttle** (T/H): Current throttle percentage
+- **Internal Battery** (U/B): TX battery voltage
 
-Or flash a precompiled binary:
+### ⚡ Dynamic Power Mode (TX)
+New throttle mode for gradual power control:
+
+- **Mode 0**: Traditional gears (fixed steps)
+- **Mode 1**: No gears (direct throttle)
+- **Mode 2**: Dynamic power cap (NEW)
+  - Adjustable power ceiling (10-100%)
+  - Real-time adjustment with toggle buttons
+  - Configurable step size per press
+  - Visual feedback on display
+
+### 🔧 Hardware Test Suite
+Python-based automated testing framework:
+
 ```bash
-esptool.py --chip esp32 -p COM3 --baud 921600 write_flash -z 0x1000 firmware.bin
+cd Tools
+python -m bremote              # Run all tests
+python -m bremote --link       # Radio link test
+python -m bremote --wifi       # WiFi config tests
+python -m bremote --interactive # Interactive tests
 ```
 
-### Pairing
+**Tests:**
+- Device auto-detection
+- Radio TX/RX functionality
+- Display, Hall sensors, ADC (TX)
+- VESC, PWM, battery (RX)
+- Config validation
+- Radio link correlation
 
-1. Power on the Rx while holding the **Bind button**
-2. Power on the Tx while holding the **Right toggle**
-3. The 3-step handshake completes automatically — both units store each other's address
+---
 
-## Configuration
-
-Settings are stored in a `confStruct` persisted to SPIFFS. There are three ways to configure:
-
-### 1. WiFi Web Interface
-Power on the Tx in USB mode (hold THR + Left toggle at startup). Run `?wifi on` over serial to start the WiFi AP, then connect and open the config page.
-
-### 2. Serial Commands
-Connect via USB at 115200 baud. Enter USB mode at startup (THR + Left toggle).
-```
-?conf              — Print current config
-?get <key>         — Get a config value
-?set <key> <value> — Set a config value
-?save              — Persist to SPIFFS
-?keys              — List all config fields
-?reboot            — Reboot
-```
-Type `?` for the full command list.
-
-### 3. Config Converter Tool
-
-**[Open Config Converter](https://raw.githack.com/janruhser/BREmote-V2-Jan/main/Tools/config_converter.html)** — Browser-based tool to decode, edit, and re-encode BREmote config strings. Paste a Base64 config from `?conf` to inspect or modify individual fields.
-
-### Key Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `radio_preset` | 1 = 868 MHz (EU), 2 = 915 MHz (US/AU) | 1 |
-| `rf_power` | Transmit power | 22 |
-| `max_gears` | Number of power levels (1–5) | 5 |
-| `thr_expo` | Throttle curve (0–49 soft, 50 linear, 51–100 aggressive) | 50 |
-| `no_lock` | Disable throttle lock | 0 |
-| `steer_enabled` | Enable steering axis | 0 |
-
-## Project Structure
+## Files Added/Modified
 
 ```
-Source/
-├── V2_Integration_Tx/       # Transmitter firmware
-│   ├── V2_Integration_Tx.ino   # Entry point (setup/loop)
-│   ├── BREmote_V2_Tx.h         # Config struct, pins, globals
-│   ├── Radio.ino                # LoRa communication & pairing
-│   ├── Display.ino              # LED matrix driver
-│   ├── Hall.ino                 # Throttle & toggle input
-│   ├── Analog.ino               # ADC sampling & filtering
-│   ├── SPIFFS.ino               # Config persistence
-│   ├── System.ino               # Serial commands, sleep, USB
-│   ├── ConfigService.ino        # Config engine
-│   └── WebConfig.ino            # WiFi AP config interface
-│
-├── V2_Integration_Rx/       # Receiver firmware
-│   ├── V2_Integration_Rx.ino   # Entry point
-│   ├── BREmote_V2_Rx.h         # Config struct, pins, globals
-│   ├── Radio.ino                # LoRa reception & telemetry
-│   ├── VESC.ino                 # VESC UART protocol
-│   ├── PWM.ino                  # Motor PWM output
-│   ├── GPS.ino                  # Optional GPS module
-│   ├── SPIFFS.ino               # Config persistence
-│   ├── System.ino               # Init, bind patterns
-│   ├── ConfigService.ino        # Config engine
-│   └── WebConfig.ino            # WiFi AP config interface
-│
 Tools/
-├── bremote_test.py          # Hardware test suite (GUI & CLI)
-├── config_converter.html    # Browser-based config editor
-└── README.md                # Test suite documentation
+├── bremote/                    # NEW: Python test framework
+│   ├── __main__.py
+│   ├── device.py
+│   ├── runner.py
+│   └── tests/
+│       ├── tx_tests.py
+│       ├── rx_tests.py
+│       ├── config_tests.py
+│       ├── wifi_tests.py
+│       └── link_test.py
+│
+├── bremote_test.py            # Standalone test script
+└── config_converter.html      # Browser config editor
+
+Source/
+├── V2_Integration_Tx/         # MODIFIED: Added new features
+├── V2_Integration_Rx/         # MODIFIED: Added JSON config
+└── Common/                    # MODIFIED: Shared config engine
 ```
 
-## Tools
-
-### Hardware Test Suite
-
-Automated and interactive testing for Tx and Rx units over USB serial. See [Tools/README.md](Tools/README.md) for full documentation.
-
-```bash
-pip install pyserial
-python Tools/bremote_test.py          # Auto tests
-python Tools/bremote_test.py --gui    # GUI mode
-python Tools/bremote_test.py -i       # Interactive tests
-```
-
-### Config Converter
-
-**[Open in Browser](https://raw.githack.com/janruhser/BREmote-V2-Jan/main/Tools/config_converter.html)** — Decode and edit BREmote config strings without a device connected.
+---
 
 ## License
 
-This project is licensed under the [GNU General Public License v3.0](LICENSE).
+GNU General Public License v3.0 (same as original)
