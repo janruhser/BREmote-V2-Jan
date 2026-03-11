@@ -323,7 +323,9 @@ void runMenu()
             }
             delay(1000);
             system_locked = 0;
+#ifdef WIFI_ENABLED
             webCfgNotifyTxUnlocked();
+#endif
             throttleReset();
             in_menu = usrConf.menu_timeout;
           }

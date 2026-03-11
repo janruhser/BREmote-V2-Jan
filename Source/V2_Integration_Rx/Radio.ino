@@ -155,7 +155,9 @@ void triggeredReceive(void *parameter) {
           if (rcvArray[5] == esp_crc8(rcvArray, 5)) 
           {
             last_packet = millis();
+#ifdef WIFI_ENABLED
             webCfgNotifyRxConnected();
+#endif
             rxprintln("CRC ok");
             rxprint("RSSI: ");
             rxprint(radio.getRSSI());

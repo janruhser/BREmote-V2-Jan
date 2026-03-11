@@ -15,7 +15,9 @@ void initStorage()
   ensureWebUiInSPIFFS();
   getConfFromSPIFFS();
   getBCFromSPIFFS();
+#ifdef WIFI_ENABLED
   webCfgInit();
+#endif
 
   // Semaphore must exist before radio can receive (ISR uses it)
   triggerReceiveSemaphore = xSemaphoreCreateBinary();
@@ -38,6 +40,27 @@ void initTasks()
   xTaskCreatePinnedToCore(triggeredReceive, "RF_ReceiveTask_triggered", 2048, NULL, 5, &triggeredReceiveHandle, 0);
   //Checks if there is connection and blinks LED, low prio
   xTaskCreatePinnedToCore(checkConnStatus, "Check_conn_staus_200ms", 2048, NULL, 2, &checkConnStatusHandle, 0);
+}
+
+void initWatchdog()
+{
+  if(config_version_error) return;
+
+  esp_task_wdt_config_t twdt_config = {
+    .timeout_ms = 1000,
+    .idle_core_mask = 0,
+    .trigger_panic = true
+  };
+
+  esp_err_t err = esp_task_wdt_init(&twdt_config);
+  if (err == ESP_OK || err == ESP_ERR_INVALID_STATE) {
+    esp_task_wdt_add(NULL);  // loop task
+    esp_task_wdt_add(generatePWMHandle);
+    esp_task_wdt_add(checkConnStatusHandle);
+    Serial.println("WDT: initialized");
+  } else {
+    Serial.println("WDT: init failed");
+  }
 }
 
 // ===== Peripherals & Boot Sequence =====

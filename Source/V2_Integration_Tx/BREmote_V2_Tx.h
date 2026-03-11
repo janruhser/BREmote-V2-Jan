@@ -2,6 +2,7 @@
 ** Includes
 */
 #include <Arduino.h>
+#include <atomic>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -11,11 +12,18 @@
 #include <Wire.h>
 #include <Adafruit_ADS1X15.h> //V2.5.0 adafruit
 #include <Ticker.h>
+#include "esp_task_wdt.h"
 #include "FS.h"
 #include "SPIFFS.h"
 #include "mbedtls/base64.h"
+
+// Uncomment the line below to enable WiFi AP configuration mode
+#define WIFI_ENABLED
+
+#ifdef WIFI_ENABLED
 #include <WiFi.h>
 #include <WebServer.h>
+#endif
 
 #define SW_VERSION 3
 const char* CONF_FILE_PATH = "/data.txt";
@@ -132,7 +140,7 @@ uint16_t displayBuffer[8];
 // Unused — shadowed by local declarations in displayDigits(), scroll3Digits(), scroll4Digits()
 //uint8_t digitBuffer[6];
 
-volatile bool rfInterrupt = false;
+std::atomic<bool> rfInterrupt{false};
 
 volatile uint8_t local_link_quality = 0;
 
@@ -216,6 +224,7 @@ volatile bool radio_activity_enabled = true;
 volatile bool radio_driver_ready = false;
 volatile bool hall_activity_enabled = true;
 
+#ifdef WIFI_ENABLED
 volatile bool web_cfg_service_enabled = false;
 volatile bool web_cfg_pending_save = false;
 volatile bool web_cfg_radio_reinit_required = false;
@@ -225,6 +234,7 @@ volatile uint32_t web_cfg_req_err = 0;
 volatile uint8_t web_cfg_debug_mode = 1; // 0=off, 1=some, 2=full
 volatile uint32_t web_cfg_ap_startup_timeout_ms = 120000; // 0 disables timeout
 String web_cfg_last_err = "";
+#endif
 
 #include "../Common/ConfigServiceEngine.h"
 
@@ -308,7 +318,13 @@ uint8_t col_mapper[] = { 1,2,4,3,5,6,7 };
 
 #include "../Common/RadioCommon.h"
 #include "../Common/SPIFFSEngine.h"
+#ifdef WIFI_ENABLED
 #include "../Common/WebConfigEngine.h"
+#endif
 #include "../Common/SystemCommon.h"
 
+#ifdef WIFI_ENABLED
 void webCfgNotifyTxUnlocked();
+#else
+inline void webCfgNotifyTxUnlocked() {}  // No-op stub when WiFi disabled
+#endif

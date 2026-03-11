@@ -257,13 +257,18 @@ static void cmdSave(const String &args) {
 }
 
 static void cmdWifi(const String &args) {
+#ifdef WIFI_ENABLED
   if(args == "on")       { webCfgEnableService(); Serial.println("WiFi/AP config service enabled."); }
   else if(args == "off") { webCfgDisableService(); Serial.println("WiFi/AP config service disabled."); }
   else if(args == "")    { Serial.print("wifi="); Serial.println(web_cfg_service_enabled ? "ON" : "OFF"); }
   else                   Serial.println("ERR: usage: ?wifi on|off");
+#else
+  Serial.println("ERR: WiFi disabled at compile time");
+#endif
 }
 
 static void cmdWifiDbg(const String &args) {
+#ifdef WIFI_ENABLED
   if(args == "") {
     Serial.print("wifidbg=");
     Serial.println(webCfgGetDebugModeName());
@@ -279,9 +284,13 @@ static void cmdWifiDbg(const String &args) {
       Serial.println("ERR_WIFIDBG_MODE");
     }
   }
+#else
+  Serial.println("ERR: WiFi disabled at compile time");
+#endif
 }
 
 static void cmdWifiPs(const String &args) {
+#ifdef WIFI_ENABLED
   if(args == "") {
     Serial.print("wifips_ms=");
     Serial.println(webCfgGetStartupTimeoutMs());
@@ -300,16 +309,24 @@ static void cmdWifiPs(const String &args) {
     if(!isDigitsOnly || ms < 0 || !webCfgSetStartupTimeoutMs((uint32_t)ms)) Serial.println("ERR_WIFIPS_VALUE");
     else { Serial.print("wifips_ms="); Serial.println(ms); }
   }
+#else
+  Serial.println("ERR: WiFi disabled at compile time");
+#endif
 }
 
 static void cmdWifiVer(const String &args) {
+#ifdef WIFI_ENABLED
   Serial.print("ui_target=");
   Serial.println(getTargetWebUiVersion());
   Serial.print("ui_installed=");
   Serial.println(getInstalledWebUiVersion());
+#else
+  Serial.println("ERR: WiFi disabled at compile time");
+#endif
 }
 
 static void cmdWifiUpd(const String &args) {
+#ifdef WIFI_ENABLED
   if(forceUpdateWebUiInSPIFFS())
   {
     Serial.print("UI updated to ");
@@ -319,14 +336,25 @@ static void cmdWifiUpd(const String &args) {
   {
     Serial.println("ERR_UI_UPDATE");
   }
+#else
+  Serial.println("ERR: WiFi disabled at compile time");
+#endif
 }
 
 static void cmdWifiState(const String &args) {
+#ifdef WIFI_ENABLED
   Serial.println(webCfgGetStateLine());
+#else
+  Serial.println("wifi=disabled (WIFI_ENABLED undefined)");
+#endif
 }
 
 static void cmdWifiErr(const String &args) {
+#ifdef WIFI_ENABLED
   Serial.println(webCfgGetLastError());
+#else
+  Serial.println("wifi_err=none (WiFi not compiled)");
+#endif
 }
 
 static void cmdReboot(const String &args) {

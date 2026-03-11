@@ -535,6 +535,7 @@ void updateBargraphs(void *parameter)
 
   while (1) 
   {
+    esp_task_wdt_reset();
     if(millis()-last_packet < 1000)
     {
       if(telemetry.link_quality)

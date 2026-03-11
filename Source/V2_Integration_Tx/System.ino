@@ -242,8 +242,12 @@ void cmdPrintPackets(const String &args) {
 }
 
 void cmdWifiStop(const String &args) {
+#ifdef WIFI_ENABLED
   webCfgNotifyTxUnlocked();
   Serial.println("TX unlock notified: AP will stop.");
+#else
+  Serial.println("ERR: WiFi disabled at compile time");
+#endif
 }
 
 void cmdExitChg(const String &args) {
@@ -509,7 +513,11 @@ void serPrintStatus(bool json)
       isHallActivityEnabled() ? "ON" : "OFF",
       isRadioActivityEnabled() ? "ON" : "OFF",
       isDisplayActivityEnabled() ? "ON" : "OFF",
+#ifdef WIFI_ENABLED
       web_cfg_service_enabled ? "ON" : "OFF",
+#else
+      "DISABLED",
+#endif
       system_locked ? "true" : "false",
       usrConf.paired ? "true" : "false",
       usrConf.throttle_mode, gear, usrConf.max_gears, max_power_cap, remote_error,
@@ -521,7 +529,12 @@ void serPrintStatus(bool json)
     Serial.print("Hall:    "); Serial.println(isHallActivityEnabled() ? "ON" : "OFF");
     Serial.print("Radio:   "); Serial.println(isRadioActivityEnabled() ? "ON" : "OFF");
     Serial.print("Display: "); Serial.println(isDisplayActivityEnabled() ? "ON" : "OFF");
-    Serial.print("WiFi AP: "); Serial.println(web_cfg_service_enabled ? "ON" : "OFF");
+    Serial.print("WiFi AP: ");
+#ifdef WIFI_ENABLED
+    Serial.println(web_cfg_service_enabled ? "ON" : "OFF");
+#else
+    Serial.println("DISABLED");
+#endif
     Serial.print("Locked:  "); Serial.println(system_locked ? "YES" : "NO");
     Serial.print("Paired:  "); Serial.println(usrConf.paired ? "YES" : "NO");
     Serial.print("Thr Mode: "); Serial.println(usrConf.throttle_mode == 0 ? "Gears" : usrConf.throttle_mode == 1 ? "No Gears" : "Dynamic Cap");
@@ -540,11 +553,15 @@ void checkCharger()
 
   while(!exitChargeScreen)
   {
+#ifdef WIFI_ENABLED
     webCfgLoop();
+#endif
     ads.startADCReading(MUX_BY_CHANNEL[P_CHGSTAT],false);
     while(!ads.conversionComplete())
     {
+#ifdef WIFI_ENABLED
       webCfgLoop();
+#endif
       delay(1);
     }
     uint16_t chgstat = ads.getLastConversionResults();
@@ -552,7 +569,9 @@ void checkCharger()
     ads.startADCReading(MUX_BY_CHANNEL[P_UBAT_MEAS],false);
     while(!ads.conversionComplete())
     {
+#ifdef WIFI_ENABLED
       webCfgLoop();
+#endif
       delay(1);
     }
     uint16_t bat_volt = ads.getLastConversionResults();
@@ -574,7 +593,9 @@ void checkCharger()
       displayHorzBargraph(7,chglevel);
       updateDisplay();
       checkSerial();
+#ifdef WIFI_ENABLED
       webCfgLoop();
+#endif
       delay(200);
     }
     else if(chgstat > 10000 && chgstat < 18000)
@@ -587,7 +608,9 @@ void checkCharger()
       displayHorzBargraph(7,10);
       updateDisplay();
       checkSerial();
+#ifdef WIFI_ENABLED
       webCfgLoop();
+#endif
       delay(200);
     }
     else
@@ -597,7 +620,9 @@ void checkCharger()
       Serial.println(chg_err_cnt);
       Serial.print("Stat: ");
       Serial.println(chgstat);
+#ifdef WIFI_ENABLED
       webCfgLoop();
+#endif
       delay(10);
       if(chg_err_cnt > 10)
       {

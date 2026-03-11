@@ -2,6 +2,7 @@
 ** Includes
 */
 #include <Arduino.h>
+#include <atomic>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -13,11 +14,18 @@
 #include "driver/rmt_tx.h"
 #define RMT_TX_GPIO_NUM  GPIO_NUM_9
 #include <Ticker.h>
+#include "esp_task_wdt.h"
 #include "FS.h"
 #include "SPIFFS.h"
 #include "mbedtls/base64.h"
+
+// Uncomment the line below to enable WiFi AP configuration mode
+#define WIFI_ENABLED
+
+#ifdef WIFI_ENABLED
 #include <WiFi.h>
 #include <WebServer.h>
+#endif
 
 #include "vesc_datatypes.h"
 #include "vesc_buffer.h"
@@ -102,6 +110,7 @@ confStruct defaultConf = {SW_VERSION, 1, 0, 0, 50, 0, 0, 1500, 2000, 1500, 2000,
 #include "../Common/ConfigServiceEngine.h"
 
 // Web config globals
+#ifdef WIFI_ENABLED
 volatile bool web_cfg_service_enabled = false;
 volatile bool web_cfg_pending_save = false;
 volatile bool web_cfg_radio_reinit_required = false;
@@ -111,12 +120,19 @@ volatile uint32_t web_cfg_req_err = 0;
 volatile uint8_t web_cfg_debug_mode = 1; // 0=off, 1=some, 2=full
 volatile uint32_t web_cfg_ap_startup_timeout_ms = 120000; // 0 disables timeout
 String web_cfg_last_err = "";
+#endif
 volatile bool config_version_error = false;
 
 #include "../Common/SPIFFSEngine.h"
+#ifdef WIFI_ENABLED
 #include "../Common/WebConfigEngine.h"
+#endif
 
+#ifdef WIFI_ENABLED
 void webCfgNotifyRxConnected();
+#else
+inline void webCfgNotifyRxConnected() {}  // No-op stub when WiFi disabled
+#endif
 
 //Telemetry to send, MUST BE 8-bit!!
 struct __attribute__((packed)) TelemetryPacket {
@@ -148,7 +164,7 @@ SemaphoreHandle_t triggerReceiveSemaphore;
 /*
 ** Variables
 */
-volatile bool rfInterrupt = false;
+std::atomic<bool> rfInterrupt{false};
 volatile bool rxIsrState = 0;
 
 volatile int unpairedBlink = 0;

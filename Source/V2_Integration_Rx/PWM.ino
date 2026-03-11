@@ -4,6 +4,7 @@ void generatePWM(void *parameter) {
 
   while (1) 
   {
+    esp_task_wdt_reset();
     calcPWM();
 
     if(PWM_active && millis()-last_packet < usrConf.failsafe_time)

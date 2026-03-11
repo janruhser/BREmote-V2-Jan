@@ -177,8 +177,12 @@ void cmdTestBG(const String& params) { readTelemetryUntilQuit(); }
 void cmdTestPercent(const String& params) { testPercent(); }
 
 void cmdWifiStop(const String& params) {
+#ifdef WIFI_ENABLED
   webCfgNotifyRxConnected();
   Serial.println("RX connected notified: AP will stop.");
+#else
+  Serial.println("ERR: WiFi disabled at compile time");
+#endif
 }
 
 void cmdHelp(const String& params);
@@ -561,6 +565,7 @@ void checkConnStatus(void *parameter)
 
   while (1)
   {
+    esp_task_wdt_reset();
     if(usrConf.paired)
     {
       if(millis() - last_packet < usrConf.failsafe_time)

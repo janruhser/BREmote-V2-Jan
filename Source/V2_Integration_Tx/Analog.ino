@@ -41,6 +41,7 @@ void measBufCalc(void *parameter)
 
   while (1) 
   {
+    esp_task_wdt_reset();
     if(isHallActivityEnabled())
     {
       measureAndBuffer();

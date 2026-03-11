@@ -13,6 +13,7 @@ void setup()
   initStorage();
   runBootSequence();
   initTasks();
+  initWatchdog();
 
   exitSetup();
   PWM_active = 1;
@@ -23,7 +24,10 @@ int wetness_counter = 0;
 
 void loop()
 {
+  esp_task_wdt_reset();
+#ifdef WIFI_ENABLED
   webCfgLoop();
+#endif
   checkSerial();
 
   if(millis()-loop_timer > 1000)

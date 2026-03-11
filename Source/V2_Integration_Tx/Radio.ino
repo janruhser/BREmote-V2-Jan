@@ -217,6 +217,7 @@ void sendData(void *parameter)
 
   while(1)
   {
+    esp_task_wdt_reset();
     if(usrConf.paired && isRadioActivityEnabled())
     {
       // Dest1, Dest2, Dest3, THR, Steer, CRC8

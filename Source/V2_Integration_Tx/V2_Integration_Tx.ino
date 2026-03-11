@@ -16,6 +16,7 @@ void setup()
   initTasks();
   runBootSequence();
   applyConfigSettings();
+  initWatchdog();
 
   exitSetup();
   in_setup = false;
@@ -26,7 +27,9 @@ void setup()
   }
   else
   {
+#ifdef WIFI_ENABLED
     webCfgNotifyTxUnlocked();
+#endif
   }
 
   if(config_version_error)
@@ -46,6 +49,7 @@ void setup()
 
 void loop()
 {
+  esp_task_wdt_reset();
   if(config_version_error)
   {
     scroll3Digits(LET_E, 5, LET_V, 200);
@@ -53,7 +57,9 @@ void loop()
     return;
   }
 
+#ifdef WIFI_ENABLED
   webCfgLoop();
+#endif
   runMenu();
   if(in_menu > 0) in_menu--;
 
@@ -66,6 +72,7 @@ void loop()
 
   renderOperationalDisplay();
   
-  delay(110);
-  
+  //delay(110);
+  vTaskDelay(pdMS_TO_TICKS(110));
+
 } //End of loop()

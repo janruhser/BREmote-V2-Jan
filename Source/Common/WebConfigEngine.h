@@ -1,6 +1,8 @@
 #ifndef WEB_CONFIG_ENGINE_H
 #define WEB_CONFIG_ENGINE_H
 
+#ifdef WIFI_ENABLED
+
 // Shared web config AP and HTTP API for BREmote V2 TX and RX.
 // Requirements before #include:
 //   - <WiFi.h>, <WebServer.h>, <SPIFFS.h> included
@@ -585,5 +587,7 @@ void webCfgDisableService()
   WiFi.mode(WIFI_OFF);
   web_cfg_service_enabled = false;
 }
+
+#endif // WIFI_ENABLED
 
 #endif // WEB_CONFIG_ENGINE_H
