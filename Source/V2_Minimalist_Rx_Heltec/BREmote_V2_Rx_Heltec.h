@@ -8,7 +8,9 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 
+#include <SPI.h>
 #include <RadioLib.h> //V7.1.2
+#include <Wire.h>
 #include "driver/rmt_tx.h"
 #include <Ticker.h>
 #include "esp_task_wdt.h"
@@ -183,6 +185,43 @@ unsigned long percent_last_thr_change = 0;
   #define VESC_PACK_LEN 9
   uint8_t vescRelayBuffer[15];
 #endif
+
+/* 
+** Defines
+*/
+
+//SPI Pins
+#define P_SPI_MISO 7
+#define P_SPI_MOSI 6
+#define P_SPI_SCK 10
+//LORA Pins
+#define P_LORA_DIO 3
+#define P_LORA_BUSY 1
+#define P_LORA_RST 5
+#define P_LORA_NSS 8
+#define P_LORA_ANT_SW 0
+
+//Misc Pins
+#define P_PWM_OUT 9
+#define P_U1_TX 4
+#define P_U1_RX 2
+#define P_U0_TX 21
+#define P_U0_RX 20
+
+// RMT Configuration
+rmt_channel_handle_t tx_channel = NULL;
+rmt_encoder_handle_t copy_encoder = NULL;
+rmt_symbol_word_t pulse_symbol;
+
+/*
+** HAL Forward Declarations (for compatibility with original logic)
+*/
+void hal_init();
+void hal_esc_init();
+void hal_esc_write(uint16_t value);
+void hal_radio_switch_mode(bool tx);
+HardwareSerial& hal_get_vesc_uart();
+HardwareSerial& hal_get_gps_uart();
 
 //Debug options
 //#define DEBUG_RX

@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nTx: fix subsystem gating on unlock, add ?status command\n\nOnly gate radio when locked \\(hall/display stay on\\), re-enable\nhall and radio in unlock path. Extract renderOperationalDisplay\\(\\)\nto Display.ino. Add ?status serial command for subsystem diagnostics.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(netsh wlan:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Skill(gsd:plan-phase)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(xargs grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(echo exit: $?:*)",
+      "Bash(git status:*)"
+    ]
+  }
+}
