@@ -1,5 +1,5 @@
 // RX-specific web config definitions.
-// Shared engine is in ../Common/WebConfigEngine.h (included via BREmote_V2_Rx.h).
+// Shared engine is in ../Common/WebConfigEngine.h (included via BREmote_V2_Rx_Heltec.h).
 
 #ifdef WIFI_ENABLED
 
@@ -8,8 +8,7 @@ const char* WEB_CFG_SHUTDOWN_REASON = "rx_connected";
 
 void webCfgResetCalibration(confStruct& conf)
 {
-  conf.ubat_cal = defaultConf.ubat_cal;
-  conf.ubat_offset = defaultConf.ubat_offset;
+  // Calibration fields removed in minimalist build
 }
 
 void webCfgNotifyRxConnected()

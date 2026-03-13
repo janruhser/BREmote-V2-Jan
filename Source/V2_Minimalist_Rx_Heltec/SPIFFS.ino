@@ -1,22 +1,25 @@
 // RX-specific SPIFFS definitions.
-// Shared engine is in ../Common/SPIFFSEngine.h (included via BREmote_V2_Rx.h).
+// Shared engine is in ../Common/SPIFFSEngine.h (included via BREmote_V2_Rx_Heltec.h).
 
 void spiffsFormatNotify(bool starting)
 {
   if(starting)
   {
-    aw.digitalWrite(AP_L_AUX, LOW);
+    Serial.println("Formatting SPIFFS...");
   }
   else
   {
-    aw.digitalWrite(AP_L_AUX, HIGH);
+    Serial.println("Formatting complete.");
   }
 }
 
 void spiffsErrorHalt(int type)
 {
-  if(type == 1) while(1) blinkErr(3, AP_L_AUX);
-  while(1) blinkErr(4, AP_L_AUX);
+  Serial.print("SPIFFS error halt: ");
+  Serial.println(type);
+  while(1) {
+    delay(100);
+  }
 }
 
 // ===== Battery Calibration (RX-only) =====
@@ -55,7 +58,7 @@ void getBCFromSPIFFS()
     if (!readBCFromSPIFFS())
     {
       Serial.println("Error writing bat conf!");
-      while(1) blinkErr(4, AP_L_AUX);
+      while(1) delay(100);
     }
   }
   Serial.println("... Done");
