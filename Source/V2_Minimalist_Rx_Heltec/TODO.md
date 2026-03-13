@@ -1,3 +1,4 @@
 # TODO
 
 - [ ] **Web Interface & Config Structure:** Update `WebUiEmbedded.h` and the underlying config struct (`confStruct` in `BREmote_V2_Rx_Heltec.h` and `kCfgFields` in `ConfigService.ino`) to strictly match the minimalist capabilities. Remove UI elements and logic for dual motors, steering, AW9523, and analog sensors.
+- [ ] **Compile-Time Feature Flags:** Add a `#define` flag system (e.g., `#define USE_GPS` or `#define USE_WETNESS_DETECTION`) in `BREmote_V2_Rx_Heltec.h`. Since GPIO 20 and 21 are the only remaining pins, this flag should conditionally compile either the GPS logic or the Wetness Detection logic and map the pins accordingly.
