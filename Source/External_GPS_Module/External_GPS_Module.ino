@@ -33,10 +33,10 @@ void setup() {
   bool found = false;
   for (int i = 0; i < 3; i++) {
     Serial.printf("Trying GPS at %ld baud...\n", bauds[i]);
-    Serial2.begin(bauds[i], SERIAL_8N1, RX_PIN, TX_PIN);
+    Serial1.begin(bauds[i], SERIAL_8N1, RX_PIN, TX_PIN);
     unsigned long start = millis();
     while (millis() - start < 2000) {
-      if (Serial2.available() > 0) {
+      if (Serial1.available() > 0) {
         Serial.printf("GPS found at %ld baud!\n", bauds[i]);
         found = true;
         break;
@@ -44,18 +44,18 @@ void setup() {
       delay(10);
     }
     if (found) break;
-    Serial2.end();
+    Serial1.end();
   }
 
   if (!found) {
     Serial.println("GPS not found, defaulting to 9600.");
-    Serial2.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
+    Serial1.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   }
 }
 
 void loop() {
-  while (Serial2.available() > 0) {
-    if (gps.encode(Serial2.read())) {
+  while (Serial1.available() > 0) {
+    if (gps.encode(Serial1.read())) {
       if (gps.location.isUpdated()) {
         packet.lat = (float)gps.location.lat();
         packet.lon = (float)gps.location.lng();
